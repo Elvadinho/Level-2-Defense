@@ -1,0 +1,16 @@
+<?php
+
+namespace Modules\Task\Database\Seeders;
+
+use Illuminate\Database\Seeder;
+
+class TaskDatabaseSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        // $this->call([]);
+    }
+}

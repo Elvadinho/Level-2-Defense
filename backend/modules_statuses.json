@@ -1,0 +1,13 @@
+{
+    "Authentication": true,
+    "Employee": true,
+    "Attendance": true,
+    "Project": true,
+    "Task": true,
+    "Customer": true,
+    "Quotation": true,
+    "Invoice": true,
+    "Payment": true,
+    "Notification": true,
+    "AIAssistant": true
+}

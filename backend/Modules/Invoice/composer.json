@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/invoice",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Invoice\\": "app/",
+            "Modules\\Invoice\\Database\\Factories\\": "database/factories/",
+            "Modules\\Invoice\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Invoice\\Tests\\": "tests/"
+        }
+    }
+}

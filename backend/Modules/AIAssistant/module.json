@@ -1,0 +1,11 @@
+{
+    "name": "AIAssistant",
+    "alias": "aiassistant",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\AIAssistant\\Providers\\AIAssistantServiceProvider"
+    ],
+    "files": []
+}
