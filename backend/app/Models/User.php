@@ -57,4 +57,9 @@ class User extends Authenticatable
     {
         return in_array($this->role, $roles);
     }
+
+//    A user may have one employee profile
+    public function employee(){
+        return $this->hasOne(\Modules\Employee\Models\Employee::class);
+    }
 }

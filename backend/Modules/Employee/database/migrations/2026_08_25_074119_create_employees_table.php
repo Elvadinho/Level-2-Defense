@@ -13,7 +13,11 @@ return new class extends Migration
     {
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
-            
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('department_id')->constrained('departments')->restrictOnDelete();
+            $table->string('job_title');
+            $table->string('employment_status')->default('active');
+            $table->date('hire_date');
             $table->timestamps();
         });
     }
