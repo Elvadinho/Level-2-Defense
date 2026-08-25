@@ -57,7 +57,7 @@ Level-2-Defense/
 | # | Module | Status | Models | Services | Controllers | Routes |
 |---|--------|--------|--------|----------|-------------|--------|
 | 1 | Authentication | ✅ Implemented | User (core) | AuthService | AuthController | ✅ |
-| 2 | Employee | ⬜ Not started | — | — | — | — |
+| 2 | Employee | ✅ Implemented | Department, Employee | EmployeeService, DepartmentService | EmployeeController, DepartmentController | ✅ |
 | 3 | Attendance | ⬜ Not started | — | — | — | — |
 | 4 | Project | ⬜ Not started | — | — | — | — |
 | 5 | Task | ⬜ Not started | — | — | — | — |
@@ -79,8 +79,8 @@ Level-2-Defense/
 | `sessions` | Core Laravel | ✅ Exists | Session management |
 | `cache` | Core Laravel | ✅ Exists | Cache storage |
 | `jobs` | Core Laravel | ✅ Exists | Queue jobs |
-| `departments` | Employee | ⬜ Pending | — |
-| `employees` | Employee | ⬜ Pending | — |
+| `departments` | Employee | ✅ Exists | — |
+| `employees` | Employee | ✅ Exists | — |
 | `attendances` | Attendance | ⬜ Pending | — |
 | `projects` | Project | ⬜ Pending | — |
 | `tasks` | Task | ⬜ Pending | — |
@@ -148,13 +148,14 @@ Level-2-Defense/
 6. ✅ Sanctum installed via `artisan install:api`
 7. ✅ All 11 module skeletons created
 8. ✅ Authentication module implemented (Role enum, migration, User model, AuthService, AuthController, routes)
-9. ✅ API testing documentation created (`backend/docs/api-testing.md`)
+9. ✅ Employee module implemented (EmploymentStatus enum, migrations, Models, Services, Controllers, routes)
+10. ✅ API testing documentation created and updated (`backend/docs/api-testing.md`)
 
 ---
 
 ## Current Phase
 
-**Next**: Employee Module (departments, employees, employment status)
+**Next**: Attendance Module (check-in/out, QR code)
 
 ---
 

@@ -6,7 +6,9 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Attendance\Models\Attendance;
 use Modules\Employee\Enums\EmploymentStatus;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 // use Modules\Employee\Database\Factories\EmployeeFactory;
 
@@ -49,4 +51,13 @@ class Employee extends Model
     {
         return $this->belongsTo(Department::class);
     }
+
+    /**
+     * An employee has many attendance records.
+     */
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
 }
