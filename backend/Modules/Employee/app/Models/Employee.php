@@ -21,7 +21,7 @@ class Employee extends Model
         'user_id',
         'department_id',
         'job_title',
-        'employement_status',
+        'employment_status',
         'hire_date',
     ];
 

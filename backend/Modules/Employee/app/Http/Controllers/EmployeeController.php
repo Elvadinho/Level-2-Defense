@@ -3,54 +3,40 @@
 namespace Modules\Employee\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Modules\Employee\Http\Requests\EmployeeRequest;
+use Modules\Employee\Models\Employee;
+use Modules\Employee\Services\EmployeeService;
 
 class EmployeeController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(private readonly EmployeeService $employeeService) {}
+
+    public function index(): JsonResponse
     {
-        return view('employee::index');
+        return response()->json($this->employeeService->getAll());
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(EmployeeRequest $request): JsonResponse
     {
-        return view('employee::create');
+        $employee = $this->employeeService->create($request->validated());
+        return response()->json($employee->load(['user', 'department']), 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function show(Employee $employee): JsonResponse
     {
-        return view('employee::show');
+        return response()->json($employee->load(['user', 'department']));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
+    public function update(EmployeeRequest $request, Employee $employee): JsonResponse
     {
-        return view('employee::edit');
+        $update = $this->employeeService->update($employee, $request->validated());
+        return response()->json($update->load(['user', 'department']));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
+    public function destroy(Employee $employee): JsonResponse
+    {
+        $this->employeeService->delete($employee);
+        return response()->json(['message' => 'Employee deleted successfully.']);
+    }
 }

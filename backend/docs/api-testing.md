@@ -45,4 +45,48 @@
 *(Requires Bearer Token)*
 
 ---
+
+## Employee Module (`/api/departments` & `/api/employees`)
+*(All endpoints require Bearer Token)*
+
+### Departments
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/departments` | List all departments |
+| POST | `/api/departments` | Create a department |
+| GET | `/api/departments/{id}` | Get specific department |
+| PUT | `/api/departments/{id}` | Update department |
+| DELETE | `/api/departments/{id}` | Delete department |
+
+**POST / PUT Payload:**
+```json
+{
+    "name": "Human Resources",
+    "description": "HR department" // optional
+}
+```
+
+### Employees
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/employees` | List all employees |
+| POST | `/api/employees` | Create an employee |
+| GET | `/api/employees/{id}` | Get specific employee |
+| PUT | `/api/employees/{id}` | Update employee |
+| DELETE | `/api/employees/{id}` | Delete employee |
+
+**POST / PUT Payload:**
+```json
+{
+    "user_id": 1,
+    "department_id": 1,
+    "job_title": "Software Engineer",
+    "employment_status": "active", // optional: active, on_leave, terminated
+    "hire_date": "2026-08-25"
+}
+```
+
+---
 *(More modules will be added here as we build them)*
