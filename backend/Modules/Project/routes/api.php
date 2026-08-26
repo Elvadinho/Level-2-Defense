@@ -3,6 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Project\Http\Controllers\ProjectController;
 
-Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
-    Route::apiResource('projects', ProjectController::class)->names('project');
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::apiResource('projects', ProjectController::class);
+
+    Route::get('ptojects/{project}/members', [ProjectController::class, 'members']);
+    Route::post('projects/{project}/members', [ProjectController::class, 'addMember']);
+    Route::delete('projects/{project}/members/{employee}', [ProjectController::class, 'removeMember']);
 });

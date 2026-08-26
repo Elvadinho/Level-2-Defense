@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Attendance\Models\Attendance;
 use Modules\Employee\Enums\EmploymentStatus;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 // use Modules\Employee\Database\Factories\EmployeeFactory;
 
@@ -40,13 +41,13 @@ class Employee extends Model
         ];
     }
 
-//    An employee belongs to a user account
+    //    An employee belongs to a user account
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-//    An employee belongs to a department
+    //    An employee belongs to a department
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
@@ -60,4 +61,23 @@ class Employee extends Model
         return $this->hasMany(Attendance::class);
     }
 
+    // Projects this employee manages
+    public function managedProjects(): HasMany
+    {
+        return $this->hasMany(\Modules\Project\Models\Project::class, 'manager_id');
+    }
+
+    // Projects this employee is a member of
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(\Modules\Project\Models\Project::class, 'project_members')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    // Tasks assigned to this employee
+    public function assignedTasks(): HasMany
+    {
+        return $this->hasMany(\Modules\Task\Models\Task::class, 'assigned_to');
+    }
 }
