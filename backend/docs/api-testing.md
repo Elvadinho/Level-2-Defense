@@ -89,4 +89,36 @@
 ```
 
 ---
+
+## Attendance Module (`/api/attendance`)
+*(All endpoints require Bearer Token)*
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/attendance/check-in` | Check in (employee) |
+| POST | `/api/attendance/check-out` | Check out (employee) |
+| GET | `/api/attendance/my-history` | View own history (employee) |
+| GET | `/api/attendance` | List all records (Admin/HR) |
+| GET | `/api/attendance/history/{id}` | View specific employee history (Admin/HR) |
+| GET | `/api/attendance/qr-code` | Generate QR Code SVG (Admin/HR) |
+
+### Check In (`POST /api/attendance/check-in`)
+**Payload:**
+```json
+{
+    "latitude": 5.3600,
+    "longitude": -4.0083
+}
+```
+
+### Check Out (`POST /api/attendance/check-out`)
+**Payload:**
+```json
+{
+    "latitude": 5.3600,
+    "longitude": -4.0083
+}
+```
+
+---
 *(More modules will be added here as we build them)*

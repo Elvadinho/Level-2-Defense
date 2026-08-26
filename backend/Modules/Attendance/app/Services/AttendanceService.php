@@ -19,10 +19,10 @@ class AttendanceService
      */
     public function checkIn(Employee $employee, float $latitude, float $longitude): Attendance
     {
-//      verify geolocation
-        $this->verifyLocation($latitude, $longitude);
+        //      verify geolocation and catch the distance
+        $distance = $this->verifyLocation($latitude, $longitude);
 
-//      Prevent double check
+        //      Prevent double check
         $today = Carbon::today()->toDateString();
 
         $existing = Attendance::where('employee_id', $employee->id)
@@ -33,7 +33,7 @@ class AttendanceService
             throw new \RuntimeException('You have already checked in today.');
         }
 
-//      Determine if late
+        //      Determine if late
         $lateHour = (int)env('ATTENDANCE_LATE_HOUR', 8);
         $status = Carbon::now()->hour >= $lateHour ? AttendanceStatus::LATE : AttendanceStatus::PRESENT;
 
@@ -42,6 +42,7 @@ class AttendanceService
             'date' => $today,
             'check_in_time' => Carbon::now()->toTimeString(),
             'status' => $status->value,
+            'check_in_distance' => $distance, // <-- Add this line
             'check_in_latitude' => $latitude,
             'check_in_longitude' => $longitude,
         ]);
@@ -49,8 +50,8 @@ class AttendanceService
 
     public function checkOut(Employee $employee, float $latitude, float $longitude): Attendance
     {
-//      Verify geolocation
-        $this->verifyLocation($latitude, $longitude);
+        //      Verify geolocation
+        $distance = $this->verifyLocation($latitude, $longitude);
 
         $today = Carbon::today()->toDateString();
 
@@ -58,18 +59,19 @@ class AttendanceService
             ->where('date', $today)
             ->first();
 
-//      Must check in before checking out
+        //      Must check in before checking out
         if (!$attendance) {
             throw new \RuntimeException('You have not checked in today.');
         }
 
-//      Prevent double checkout
+        //      Prevent double checkout
         if ($attendance->check_out_time) {
             throw new \RuntimeException('You have already checked out today.');
         }
 
         $attendance->update([
             'check_out_time' => Carbon::now()->toTimeString(),
+            'check_out_distance' => $distance, // <-- Add this line
             'check_out_latitude' => $latitude,
             'check_out_longitude' => $longitude,
         ]);
@@ -77,7 +79,7 @@ class AttendanceService
         return $attendance;
     }
 
-//  Get attendance history for a specific employee
+    //  Get attendance history for a specific employee
     public function getHistoryByEmployee(int $employee): Collection
     {
         return Attendance::where('employee_id', $employee)
@@ -85,7 +87,7 @@ class AttendanceService
             ->get();
     }
 
-//  Get all attendance records(HR / Admin)
+    //  Get all attendance records(HR / Admin)
     public function getAll(): Collection
     {
         return Attendance::with('employee.user')
@@ -102,7 +104,10 @@ class AttendanceService
      *
      * @throws \RuntimeException if too far from office
      */
-    private function verifyLocation(float $latitude, float $longitude): void
+    /**
+     * @return float The distance in meters
+     */
+    private function verifyLocation(float $latitude, float $longitude): float
     {
         $officeLat = (float)env('OFFICE_LATITUDE');
         $officeLng = (float)env('OFFICE_LONGITUDE');
@@ -115,7 +120,10 @@ class AttendanceService
                 "You are too far from the office. Distance: " . round($distance) . "m (max: {$maxRadius}m)."
             );
         }
+
+        return $distance; // <-- We return it now!
     }
+
 
     /**
      * Calculate the distance in meters between two GPS coordinates

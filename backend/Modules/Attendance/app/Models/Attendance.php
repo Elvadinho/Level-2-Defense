@@ -18,6 +18,8 @@ class Attendance extends Model
         'check_in_time',
         'check_out_time',
         'status',
+        'check_in_distance',
+        'check_out_distance',
         'check_in_latitude',
         'check_in_longitude',
         'check_out_latitude',
@@ -29,6 +31,8 @@ class Attendance extends Model
         return [
             'date' => 'date',
             'status' => AttendanceStatus::class,
+            'check_in_distance' => 'decimal:2',
+            'check_out_distance' => 'decimal:2',
             'check_in_latitude' => 'decimal:7',
             'check_in_longitude' => 'decimal:7',
             'check_out_latitude' => 'decimal:7',

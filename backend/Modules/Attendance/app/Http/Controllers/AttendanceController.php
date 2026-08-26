@@ -11,10 +11,7 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class AttendanceController extends Controller
 {
-    public function __construct(private readonly AttendanceService $attendanceService)
-    {
-
-    }
+    public function __construct(private readonly AttendanceService $attendanceService) {}
 
 //  List all attendance records
     /**
@@ -25,16 +22,16 @@ class AttendanceController extends Controller
         return response()->json($this->attendanceService->getAll());
     }
 
-//    Check in employee identified from auth token
+    //    Check in employee identified from auth token
     public function checkIn(AttendanceRequest $request): JsonResponse
     {
         $employee = $request->user()->employee;
 
-        if(!$employee){
+        if (!$employee) {
             return response()->json(['message' => 'No employee profile linked to this account.'], 403);
         }
 
-        try{
+        try {
             $attendance = $this->attendanceService->checkIn(
                 $employee,
                 $request->latitude,
@@ -45,7 +42,7 @@ class AttendanceController extends Controller
                 'message' => 'Checked in successfully.',
                 'attendance' => $attendance->load('employee.user'),
             ], 201);
-        } catch (\RuntimeException $e){
+        } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
         }
     }
@@ -77,7 +74,7 @@ class AttendanceController extends Controller
     {
         $employee = $request->user()->employee;
 
-        if(!$employee) {
+        if (!$employee) {
             return response()->json(['message' => 'No employee profile linked to this account.'], 403);
         }
 
@@ -94,42 +91,18 @@ class AttendanceController extends Controller
 
     public function generateQRCode(): mixed
     {
-        $url = env('APP_URL', 'http://localhost:3000') . '/attendance';
+        $qrSecretToken = 'modoo-office-secure-token';
 
         $qrCode = QrCode::format('svg')
             ->size(400)
             ->margin(2)
-            ->generate($url);
+            ->style('dot')       // Keeps the modern rounded dots
+            ->eye('circle')      // Keeps the circular corner squares
+            ->color(0, 102, 204) // Professional Blue
+            ->backgroundColor(240, 255, 240) // Very light green background
+            ->generate($qrSecretToken);
 
         return response($qrCode, 200)
             ->header('Content-Type', 'image/svg+xml');
     }
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
