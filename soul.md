@@ -59,8 +59,8 @@ Level-2-Defense/
 | 1 | Authentication | ✅ Implemented | User (core) | AuthService | AuthController | ✅ |
 | 2 | Employee | ✅ Implemented | Department, Employee | EmployeeService, DepartmentService | EmployeeController, DepartmentController | ✅ |
 | 3 | Attendance | ✅ Implemented | Attendance | AttendanceService | AttendanceController | ✅ |
-| 4 | Project | ⬜ Not started | — | — | — | — |
-| 5 | Task | ⬜ Not started | — | — | — | — |
+| 4 | Project | ✅ Implemented | Project, ProjectMember | ProjectService | ProjectController | ✅ |
+| 5 | Task | ✅ Implemented | Task, TaskComment | TaskService | TaskController | ✅ |
 | 6 | Customer | ⬜ Not started | — | — | — | — |
 | 7 | Quotation | ⬜ Not started | — | — | — | — |
 | 8 | Invoice | ⬜ Not started | — | — | — | — |
@@ -82,10 +82,10 @@ Level-2-Defense/
 | `departments` | Employee | ✅ Exists | — |
 | `employees` | Employee | ✅ Exists | — |
 | `attendances` | Attendance | ✅ Exists | — |
-| `projects` | Project | ⬜ Pending | — |
-| `tasks` | Task | ⬜ Pending | — |
-| `task_assignments` | Task | ⬜ Pending | — |
-| `comments` | Task | ⬜ Pending | — |
+| `projects` | Project | ✅ Exists | — |
+| `tasks` | Task | ✅ Exists | — |
+| `task_assignments` | Task | ✅ Exists | — |
+| `comments` | Task | ✅ Exists | — |
 | `customers` | Customer | ⬜ Pending | — |
 | `quotations` | Quotation | ⬜ Pending | — |
 | `invoices` | Invoice | ⬜ Pending | — |
@@ -164,8 +164,8 @@ Level-2-Defense/
 
 1. ✅ Employee Module (departments, employees)
 2. ✅ Attendance Module (check-in/out, QR code)
-3. ⬜ Project Module (projects, project managers)
-4. ⬜ Task Module (tasks, assignments, comments)
+3. ✅ Project Module (projects, project members)
+4. ✅ Task Module (tasks, comments)
 5. ⬜ Customer Module
 6. ⬜ Quotation Module
 7. ⬜ Invoice Module

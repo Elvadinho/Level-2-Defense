@@ -121,4 +121,76 @@
 ```
 
 ---
+
+## Project Module (`/api/projects`)
+*(All endpoints require Bearer Token)*
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/projects` | List all projects |
+| POST | `/api/projects` | Create a project |
+| GET | `/api/projects/{id}` | Get specific project |
+| PUT | `/api/projects/{id}` | Update project |
+| DELETE | `/api/projects/{id}` | Delete project |
+| GET | `/api/projects/{id}/members` | List project members |
+| POST | `/api/projects/{id}/members` | Add member to project |
+| DELETE | `/api/projects/{id}/members/{employee_id}` | Remove member from project |
+
+**POST / PUT Payload for Project:**
+```json
+{
+    "name": "Website Redesign",
+    "description": "Full redesign of the corporate website",
+    "status": "planning",
+    "start_date": "2026-09-01",
+    "end_date": "2026-12-31",
+    "manager_id": 1
+}
+```
+
+**POST Payload for Project Members:**
+```json
+{
+    "employee_id": 1,
+    "role": "developer"
+}
+```
+
+---
+
+## Task Module (`/api/projects/{id}/tasks` & `/api/tasks`)
+*(All endpoints require Bearer Token)*
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/projects/{id}/tasks` | List all tasks in a project |
+| POST | `/api/projects/{id}/tasks` | Create a task in a project |
+| GET | `/api/tasks/{id}` | Get specific task |
+| PUT | `/api/tasks/{id}` | Update task |
+| DELETE | `/api/tasks/{id}` | Delete task |
+| GET | `/api/tasks/{id}/comments` | List comments for a task |
+| POST | `/api/tasks/{id}/comments` | Add comment to a task |
+
+**POST / PUT Payload for Task:**
+```json
+{
+    "title": "Design homepage mockup",
+    "description": "Create Figma mockup for the new homepage",
+    "status": "todo",
+    "priority": "high",
+    "assigned_to": 1,
+    "start_date": "2026-09-02",
+    "due_date": "2026-09-15",
+    "order": 1
+}
+```
+
+**POST Payload for Task Comments:**
+```json
+{
+    "body": "Started working on the mockup, will share by EOD."
+}
+```
+
+---
 *(More modules will be added here as we build them)*

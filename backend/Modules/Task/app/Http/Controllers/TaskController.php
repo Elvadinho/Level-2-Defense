@@ -3,54 +3,63 @@
 namespace Modules\Task\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Modules\Project\Models\Project;
+use Modules\Task\Http\Requests\TaskRequest;
+use Modules\Task\Http\Requests\TaskCommentRequest;
+use Modules\Task\Models\Task;
+use Modules\Task\Services\TaskService;
 
 class TaskController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(private readonly TaskService $taskService) {}
+
+    //    List  all tasks for a specific project
+    public function index(Project $project): JsonResponse
     {
-        return view('task::index');
+        return response()->json($this->taskService->getByProject($project->id));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    // Create atask under a project
+    public function store(TaskRequest $request, Project $project): JsonResponse
     {
-        return view('task::create');
+        $data = $request->validated();
+        $data['project_id'] = $project->id;
+
+        $task = $this->taskService->create($data);
+        return response()->json($task->load(['assignee.user', 'project']), 201);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function show(Task $task): JsonResponse
     {
-        return view('task::show');
+        return response()->json($task->load(['assignee.user', 'project', 'comments.user']));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
+    public function update(TaskRequest $request, Task $task): JsonResponse
     {
-        return view('task::edit');
+        $updated = $this->taskService->update($task, $request->validated());
+        return response()->json($updated->load(['assignee.user', 'project']));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
+    public function destroy(Task $task): JsonResponse
+    {
+        $this->taskService->delete($task);
+        return response()->json(['message' => 'Task deleted successfully.']);
+    }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
+    public function addComment(TaskCommentRequest $request, Task $task): JsonResponse
+    {
+        $comment = $this->taskService->addComment(
+            $task,
+            $request->user()->id,
+            $request->validated()['body']
+        );
+
+        return response()->json($comment->load('user'), 201);
+    }
+
+    public function comments(Task $task): JsonResponse
+    {
+        return response()->json($this->taskService->getComments($task));
+    }
 }
