@@ -1,7 +1,7 @@
 # Modoo ERP — API Reference
 
 **Base URL:** `http://localhost:8000/api`  
-**Auth Header:** `Authorization: Bearer {{token}}`
+**Auth Header:** `Authorization: Bearer {{jwt_token}}`
 
 ---
 
@@ -191,6 +191,34 @@
     "body": "Started working on the mockup, will share by EOD."
 }
 ```
+
+---
+
+## Customer Module (`/api/customers`)
+*(All endpoints require Bearer Token)*
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/customers` | List all customers |
+| POST | `/api/customers` | Create a customer |
+| GET | `/api/customers/{id}` | Get specific customer |
+| PUT | `/api/customers/{id}` | Update customer |
+| DELETE | `/api/customers/{id}` | Delete customer |
+
+**POST / PUT Payload:**
+```json
+{
+    "user_id": 1,
+    "company_name": "Acme Corp",
+    "contact_name": "Jane Smith",
+    "email": "jane@acme.com",
+    "phone": "+225 07 00 00 00",
+    "address": "123 Business Avenue",
+    "city": "Abidjan",
+    "country": "Côte d'Ivoire"
+}
+```
+> `user_id` is optional — link to an existing user account with role `customer`, or omit to create a standalone customer record.
 
 ---
 *(More modules will be added here as we build them)*

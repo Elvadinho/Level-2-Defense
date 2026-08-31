@@ -20,7 +20,7 @@ class ProjectApiTest extends TestCase
         parent::setUp();
         
         $this->user = User::factory()->create();
-        $this->actingAs($this->user, 'sanctum');
+        $this->actingAs($this->user, 'api');
 
         $department = Department::create(['name' => 'Engineering']);
         $this->manager = Employee::create([

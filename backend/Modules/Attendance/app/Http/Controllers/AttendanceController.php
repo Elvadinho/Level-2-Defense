@@ -17,8 +17,11 @@ class AttendanceController extends Controller
     /**
      * List all attendance records (HR / Admin).
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        if ($request->user()->role->value !== 'admin' && $request->user()->role->value !== 'hr') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
         return response()->json($this->attendanceService->getAll());
     }
 
@@ -84,13 +87,19 @@ class AttendanceController extends Controller
     /**
      * Get attendance history for any employee (HR/ Admin)
      */
-    public function history(int $employeeId): JsonResponse
+    public function history(Request $request, int $employeeId): JsonResponse
     {
+        if ($request->user()->role->value !== 'admin' && $request->user()->role->value !== 'hr') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
         return response()->json($this->attendanceService->getHistoryByEmployee($employeeId));
     }
 
-    public function generateQRCode(): mixed
+    public function generateQRCode(Request $request): mixed
     {
+        if ($request->user()->role->value !== 'admin' && $request->user()->role->value !== 'hr') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
         $qrSecretToken = 'modoo-office-secure-token';
 
         $qrCode = QrCode::format('svg')

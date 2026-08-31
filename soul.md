@@ -1,7 +1,7 @@
 # Modoo ERP — Project Soul
 
 > **This file is the persistent project memory. It is automatically updated after every implementation step.**
-> Last updated: 2026-08-25
+> Last updated: 2026-08-31
 
 ---
 
@@ -61,7 +61,7 @@ Level-2-Defense/
 | 3 | Attendance | ✅ Implemented | Attendance | AttendanceService | AttendanceController | ✅ |
 | 4 | Project | ✅ Implemented | Project, ProjectMember | ProjectService | ProjectController | ✅ |
 | 5 | Task | ✅ Implemented | Task, TaskComment | TaskService | TaskController | ✅ |
-| 6 | Customer | ⬜ Not started | — | — | — | — |
+| 6 | Customer | ✅ Implemented | Customer | CustomerService | CustomerController | ✅ |
 | 7 | Quotation | ⬜ Not started | — | — | — | — |
 | 8 | Invoice | ⬜ Not started | — | — | — | — |
 | 9 | Payment | ⬜ Not started | — | — | — | — |
@@ -86,7 +86,7 @@ Level-2-Defense/
 | `tasks` | Task | ✅ Exists | — |
 | `task_assignments` | Task | ✅ Exists | — |
 | `comments` | Task | ✅ Exists | — |
-| `customers` | Customer | ⬜ Pending | — |
+| `customers` | Customer | ✅ Exists | Company/contact info, linked to user account |
 | `quotations` | Quotation | ⬜ Pending | — |
 | `invoices` | Invoice | ⬜ Pending | — |
 | `payments` | Payment | ⬜ Pending | — |
@@ -151,12 +151,13 @@ Level-2-Defense/
 9. ✅ Employee module implemented (EmploymentStatus enum, migrations, Models, Services, Controllers, routes)
 10. ✅ Attendance module implemented (QR Code integration, geolocation verification)
 11. ✅ API testing documentation created and updated (`backend/docs/api-testing.md`)
+12. ✅ Customer module implemented (CRUD, linked to users)
 
 ---
 
 ## Current Phase
 
-**Next**: Project Module (projects, project managers)
+**Next**: Quotation Module (quotations, quotation items)
 
 ---
 
@@ -166,7 +167,7 @@ Level-2-Defense/
 2. ✅ Attendance Module (check-in/out, QR code)
 3. ✅ Project Module (projects, project members)
 4. ✅ Task Module (tasks, comments)
-5. ⬜ Customer Module
+5. ✅ Customer Module
 6. ⬜ Quotation Module
 7. ⬜ Invoice Module
 8. ⬜ Payment Module (external API integration)

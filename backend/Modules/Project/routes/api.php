@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Project\Http\Controllers\ProjectController;
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:api'])->group(function () {
     Route::apiResource('projects', ProjectController::class);
 
     Route::get('projects/{project}/members', [ProjectController::class, 'members']);

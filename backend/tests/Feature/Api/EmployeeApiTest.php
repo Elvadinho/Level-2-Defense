@@ -19,7 +19,7 @@ class EmployeeApiTest extends TestCase
         parent::setUp();
         // Create a user and authenticate
         $this->user = User::factory()->create();
-        $this->actingAs($this->user, 'sanctum');
+        $this->actingAs($this->user, 'api');
     }
 
     public function test_can_create_department()

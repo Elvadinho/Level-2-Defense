@@ -46,8 +46,8 @@ class AuthApiTest extends TestCase
 
     public function test_user_can_get_profile()
     {
-        $user = User::factory()->create();
-        $token = $user->createToken('test-token')->plainTextToken;
+        $user = User::factory()->create(['role' => 'employee']);
+        $token = auth('api')->login($user);
 
         $response = $this->getJson('/api/auth/profile', [
             'Authorization' => 'Bearer ' . $token

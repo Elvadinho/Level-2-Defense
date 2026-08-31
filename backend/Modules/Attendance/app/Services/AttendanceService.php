@@ -26,7 +26,7 @@ class AttendanceService
         $today = Carbon::today()->toDateString();
 
         $existing = Attendance::where('employee_id', $employee->id)
-            ->where('date', $today)
+            ->whereDate('date', $today)
             ->first();
 
         if ($existing) {
@@ -56,7 +56,7 @@ class AttendanceService
         $today = Carbon::today()->toDateString();
 
         $attendance = Attendance::where('employee_id', $employee->id)
-            ->where('date', $today)
+            ->whereDate('date', $today)
             ->first();
 
         //      Must check in before checking out

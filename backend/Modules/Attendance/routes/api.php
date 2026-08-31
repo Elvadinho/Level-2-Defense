@@ -9,7 +9,7 @@ use Modules\Attendance\Http\Controllers\AttendanceController;
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth:sanctum')->prefix('attendance')->group(function () {
+Route::middleware('auth:api')->prefix('attendance')->group(function () {
     // Employee actions (from QR code scan)
     Route::post('/check-in', [AttendanceController::class, 'checkIn']);
     Route::post('/check-out', [AttendanceController::class, 'checkOut']);

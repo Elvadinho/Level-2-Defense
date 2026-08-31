@@ -42,7 +42,13 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        // Add the API guard here:
+        'api' => [
+            'driver' => 'jwt',
+            'provider' => 'users',
+        ],
     ],
+
 
     /*
     |--------------------------------------------------------------------------

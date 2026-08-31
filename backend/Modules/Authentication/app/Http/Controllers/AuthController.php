@@ -14,7 +14,8 @@ class AuthController extends Controller
 {
   public function __construct(
     private readonly AuthService $authService
-  ) {}
+  ) {
+  }
 
   // Register a new User
   public function register(RegisterRequest $request): JsonResponse
@@ -49,7 +50,8 @@ class AuthController extends Controller
 
   public function logout(Request $request): JsonResponse
   {
-    $this->authService->logout($request->user());
+    // JWT invalidates the token on logout
+    $this->authService->logout();
 
     return response()->json([
       'message' => 'Logged out Successfully.',

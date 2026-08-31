@@ -5,8 +5,16 @@
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
-        { "key": "base_url", "value": "http://127.0.0.1:8000/api", "type": "string" },
-        { "key": "token", "value": "", "type": "string" }
+        {
+            "key": "base_url",
+            "value": "http://127.0.0.1:8000/api",
+            "type": "string"
+        },
+        {
+            "key": "jwt_token",
+            "value": "",
+            "type": "string"
+        }
     ],
     "item": [
         {
@@ -16,13 +24,31 @@
                     "name": "Register User",
                     "request": {
                         "method": "POST",
-                        "header": [ { "key": "Accept", "value": "application/json" } ],
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"name\": \"Alice Admin\",\n    \"email\": \"alice@modoo.com\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\",\n    \"role\": \"admin\"\n}",
-                            "options": { "raw": { "language": "json" } }
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
                         },
-                        "url": { "raw": "{{base_url}}/auth/register", "host": ["{{base_url}}"], "path": ["auth", "register"] }
+                        "url": {
+                            "raw": "{{base_url}}/auth/register",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "register"
+                            ]
+                        }
                     }
                 },
                 {
@@ -34,7 +60,7 @@
                                 "exec": [
                                     "var jsonData = pm.response.json();",
                                     "if(jsonData.token) {",
-                                    "    pm.collectionVariables.set(\"token\", jsonData.token);",
+                                    "    pm.collectionVariables.set('jwt_token', jsonData.token);",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -43,13 +69,31 @@
                     ],
                     "request": {
                         "method": "POST",
-                        "header": [ { "key": "Accept", "value": "application/json" } ],
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"email\": \"alice@modoo.com\",\n    \"password\": \"password123\"\n}",
-                            "options": { "raw": { "language": "json" } }
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
                         },
-                        "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] }
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        }
                     }
                 },
                 {
@@ -57,10 +101,25 @@
                     "request": {
                         "method": "GET",
                         "header": [
-                            { "key": "Accept", "value": "application/json" },
-                            { "key": "Authorization", "value": "Bearer {{token}}" }
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
                         ],
-                        "url": { "raw": "{{base_url}}/auth/profile", "host": ["{{base_url}}"], "path": ["auth", "profile"] }
+                        "url": {
+                            "raw": "{{base_url}}/auth/profile",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "profile"
+                            ]
+                        }
                     }
                 },
                 {
@@ -68,10 +127,25 @@
                     "request": {
                         "method": "POST",
                         "header": [
-                            { "key": "Accept", "value": "application/json" },
-                            { "key": "Authorization", "value": "Bearer {{token}}" }
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
                         ],
-                        "url": { "raw": "{{base_url}}/auth/logout", "host": ["{{base_url}}"], "path": ["auth", "logout"] }
+                        "url": {
+                            "raw": "{{base_url}}/auth/logout",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "logout"
+                            ]
+                        }
                     }
                 }
             ]
@@ -86,42 +160,146 @@
                             "name": "List Departments",
                             "request": {
                                 "method": "GET",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "url": { "raw": "{{base_url}}/departments", "host": ["{{base_url}}"], "path": ["departments"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/departments",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "departments"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Create Department",
                             "request": {
                                 "method": "POST",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "body": { "mode": "raw", "raw": "{\n    \"name\": \"Engineering\",\n    \"description\": \"Software and Systems Development\"\n}", "options": { "raw": { "language": "json" } } },
-                                "url": { "raw": "{{base_url}}/departments", "host": ["{{base_url}}"], "path": ["departments"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"Engineering\",\n    \"description\": \"Software and Systems Development\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/departments",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "departments"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Get Department by ID",
                             "request": {
                                 "method": "GET",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "url": { "raw": "{{base_url}}/departments/1", "host": ["{{base_url}}"], "path": ["departments", "1"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/departments/1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "departments",
+                                        "1"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Update Department",
                             "request": {
                                 "method": "PUT",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "body": { "mode": "raw", "raw": "{\n    \"name\": \"Engineering & IT\"\n}", "options": { "raw": { "language": "json" } } },
-                                "url": { "raw": "{{base_url}}/departments/1", "host": ["{{base_url}}"], "path": ["departments", "1"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"Engineering & IT\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/departments/1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "departments",
+                                        "1"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Delete Department",
                             "request": {
                                 "method": "DELETE",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "url": { "raw": "{{base_url}}/departments/1", "host": ["{{base_url}}"], "path": ["departments", "1"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/departments/1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "departments",
+                                        "1"
+                                    ]
+                                }
                             }
                         }
                     ]
@@ -133,42 +311,146 @@
                             "name": "List Employees",
                             "request": {
                                 "method": "GET",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "url": { "raw": "{{base_url}}/employees", "host": ["{{base_url}}"], "path": ["employees"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/employees",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "employees"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Create Employee",
                             "request": {
                                 "method": "POST",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "body": { "mode": "raw", "raw": "{\n    \"user_id\": 1,\n    \"department_id\": 1,\n    \"job_title\": \"Senior Developer\",\n    \"employment_status\": \"active\",\n    \"hire_date\": \"2026-08-01\"\n}", "options": { "raw": { "language": "json" } } },
-                                "url": { "raw": "{{base_url}}/employees", "host": ["{{base_url}}"], "path": ["employees"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"user_id\": 1,\n    \"department_id\": 1,\n    \"job_title\": \"Senior Developer\",\n    \"employment_status\": \"active\",\n    \"hire_date\": \"2026-08-01\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/employees",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "employees"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Get Employee by ID",
                             "request": {
                                 "method": "GET",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "url": { "raw": "{{base_url}}/employees/1", "host": ["{{base_url}}"], "path": ["employees", "1"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/employees/1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "employees",
+                                        "1"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Update Employee",
                             "request": {
                                 "method": "PUT",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "body": { "mode": "raw", "raw": "{\n    \"job_title\": \"Lead Developer\"\n}", "options": { "raw": { "language": "json" } } },
-                                "url": { "raw": "{{base_url}}/employees/1", "host": ["{{base_url}}"], "path": ["employees", "1"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"job_title\": \"Lead Developer\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/employees/1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "employees",
+                                        "1"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Delete Employee",
                             "request": {
                                 "method": "DELETE",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "url": { "raw": "{{base_url}}/employees/1", "host": ["{{base_url}}"], "path": ["employees", "1"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/employees/1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "employees",
+                                        "1"
+                                    ]
+                                }
                             }
                         }
                     ]
@@ -176,62 +458,337 @@
             ]
         },
         {
-            "name": "3. Attendance Module",
+            "name": "3. Customer Module",
+            "item": [
+                {
+                    "name": "List Customers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/customers",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "customers"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Customer",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"company_name\": \"Acme Corp\",\n    \"contact_name\": \"John Doe\",\n    \"email\": \"john@acmecorp.com\",\n    \"phone\": \"1234567890\",\n    \"address\": \"123 Acme St\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/customers",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "customers"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Customer by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/customers/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "customers",
+                                "1"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Customer",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"company_name\": \"Acme Corp Updated\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/customers/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "customers",
+                                "1"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Customer",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/customers/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "customers",
+                                "1"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "4. Attendance Module",
             "item": [
                 {
                     "name": "Check In",
                     "request": {
                         "method": "POST",
-                        "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                        "body": { "mode": "raw", "raw": "{\n    \"latitude\": 3.8452,\n    \"longitude\": 11.4861\n}", "options": { "raw": { "language": "json" } } },
-                        "url": { "raw": "{{base_url}}/attendance/check-in", "host": ["{{base_url}}"], "path": ["attendance", "check-in"] }
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"latitude\": 3.8452,\n    \"longitude\": 11.4861\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/attendance/check-in",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "attendance",
+                                "check-in"
+                            ]
+                        }
                     }
                 },
                 {
                     "name": "Check Out",
                     "request": {
                         "method": "POST",
-                        "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                        "body": { "mode": "raw", "raw": "{\n    \"latitude\": 3.8452,\n    \"longitude\": 11.4861\n}", "options": { "raw": { "language": "json" } } },
-                        "url": { "raw": "{{base_url}}/attendance/check-out", "host": ["{{base_url}}"], "path": ["attendance", "check-out"] }
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"latitude\": 3.8452,\n    \"longitude\": 11.4861\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/attendance/check-out",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "attendance",
+                                "check-out"
+                            ]
+                        }
                     }
                 },
                 {
                     "name": "My History",
                     "request": {
                         "method": "GET",
-                        "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                        "url": { "raw": "{{base_url}}/attendance/my-history", "host": ["{{base_url}}"], "path": ["attendance", "my-history"] }
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/attendance/my-history",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "attendance",
+                                "my-history"
+                            ]
+                        }
                     }
                 },
                 {
                     "name": "All Attendance History (Admin)",
                     "request": {
                         "method": "GET",
-                        "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                        "url": { "raw": "{{base_url}}/attendance", "host": ["{{base_url}}"], "path": ["attendance"] }
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/attendance",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "attendance"
+                            ]
+                        }
                     }
                 },
                 {
                     "name": "Specific Employee History (Admin)",
                     "request": {
                         "method": "GET",
-                        "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                        "url": { "raw": "{{base_url}}/attendance/history/1", "host": ["{{base_url}}"], "path": ["attendance", "history", "1"] }
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/attendance/history/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "attendance",
+                                "history",
+                                "1"
+                            ]
+                        }
                     }
                 },
                 {
                     "name": "Generate QR Code (Admin)",
                     "request": {
                         "method": "GET",
-                        "header": [ { "key": "Accept", "value": "image/svg+xml" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                        "url": { "raw": "{{base_url}}/attendance/qr-code", "host": ["{{base_url}}"], "path": ["attendance", "qr-code"] }
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "image/svg+xml"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/attendance/qr-code",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "attendance",
+                                "qr-code"
+                            ]
+                        }
                     }
                 }
             ]
         },
         {
-            "name": "4. Project Module",
+            "name": "5. Project Module",
             "item": [
                 {
                     "name": "Projects",
@@ -240,42 +797,146 @@
                             "name": "List Projects",
                             "request": {
                                 "method": "GET",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "url": { "raw": "{{base_url}}/projects", "host": ["{{base_url}}"], "path": ["projects"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/projects",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "projects"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Create Project",
                             "request": {
                                 "method": "POST",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "body": { "mode": "raw", "raw": "{\n    \"name\": \"ERP Platform V1\",\n    \"description\": \"Core architecture\",\n    \"status\": \"planning\",\n    \"start_date\": \"2026-09-01\",\n    \"end_date\": \"2026-12-31\",\n    \"manager_id\": 1\n}", "options": { "raw": { "language": "json" } } },
-                                "url": { "raw": "{{base_url}}/projects", "host": ["{{base_url}}"], "path": ["projects"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"ERP Platform V1\",\n    \"description\": \"Core architecture\",\n    \"status\": \"planning\",\n    \"start_date\": \"2026-09-01\",\n    \"end_date\": \"2026-12-31\",\n    \"manager_id\": 1\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/projects",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "projects"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Get Project by ID",
                             "request": {
                                 "method": "GET",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "url": { "raw": "{{base_url}}/projects/1", "host": ["{{base_url}}"], "path": ["projects", "1"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/projects/1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "projects",
+                                        "1"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Update Project",
                             "request": {
                                 "method": "PUT",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "body": { "mode": "raw", "raw": "{\n    \"status\": \"in_progress\"\n}", "options": { "raw": { "language": "json" } } },
-                                "url": { "raw": "{{base_url}}/projects/1", "host": ["{{base_url}}"], "path": ["projects", "1"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"status\": \"in_progress\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/projects/1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "projects",
+                                        "1"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Delete Project",
                             "request": {
                                 "method": "DELETE",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "url": { "raw": "{{base_url}}/projects/1", "host": ["{{base_url}}"], "path": ["projects", "1"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/projects/1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "projects",
+                                        "1"
+                                    ]
+                                }
                             }
                         }
                     ]
@@ -287,25 +948,91 @@
                             "name": "List Members",
                             "request": {
                                 "method": "GET",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "url": { "raw": "{{base_url}}/projects/1/members", "host": ["{{base_url}}"], "path": ["projects", "1", "members"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/projects/1/members",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "projects",
+                                        "1",
+                                        "members"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Add Member",
                             "request": {
                                 "method": "POST",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "body": { "mode": "raw", "raw": "{\n    \"employee_id\": 1,\n    \"role\": \"Lead Engineer\"\n}", "options": { "raw": { "language": "json" } } },
-                                "url": { "raw": "{{base_url}}/projects/1/members", "host": ["{{base_url}}"], "path": ["projects", "1", "members"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"employee_id\": 1,\n    \"role\": \"Lead Engineer\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/projects/1/members",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "projects",
+                                        "1",
+                                        "members"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Remove Member",
                             "request": {
                                 "method": "DELETE",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "url": { "raw": "{{base_url}}/projects/1/members/1", "host": ["{{base_url}}"], "path": ["projects", "1", "members", "1"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/projects/1/members/1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "projects",
+                                        "1",
+                                        "members",
+                                        "1"
+                                    ]
+                                }
                             }
                         }
                     ]
@@ -313,7 +1040,7 @@
             ]
         },
         {
-            "name": "5. Task Module",
+            "name": "6. Task Module",
             "item": [
                 {
                     "name": "Tasks",
@@ -322,42 +1049,150 @@
                             "name": "List Project Tasks",
                             "request": {
                                 "method": "GET",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "url": { "raw": "{{base_url}}/projects/1/tasks", "host": ["{{base_url}}"], "path": ["projects", "1", "tasks"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/projects/1/tasks",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "projects",
+                                        "1",
+                                        "tasks"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Create Task",
                             "request": {
                                 "method": "POST",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "body": { "mode": "raw", "raw": "{\n    \"title\": \"Implement Authentication\",\n    \"description\": \"Setup Sanctum and Auth routes\",\n    \"status\": \"todo\",\n    \"priority\": \"high\",\n    \"assigned_to\": 1,\n    \"start_date\": \"2026-09-02\",\n    \"due_date\": \"2026-09-07\",\n    \"order\": 1\n}", "options": { "raw": { "language": "json" } } },
-                                "url": { "raw": "{{base_url}}/projects/1/tasks", "host": ["{{base_url}}"], "path": ["projects", "1", "tasks"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"title\": \"Implement Authentication\",\n    \"description\": \"Setup Sanctum and Auth routes\",\n    \"status\": \"todo\",\n    \"priority\": \"high\",\n    \"assigned_to\": 1,\n    \"start_date\": \"2026-09-02\",\n    \"due_date\": \"2026-09-07\",\n    \"order\": 1\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/projects/1/tasks",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "projects",
+                                        "1",
+                                        "tasks"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Get Task by ID",
                             "request": {
                                 "method": "GET",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "url": { "raw": "{{base_url}}/tasks/1", "host": ["{{base_url}}"], "path": ["tasks", "1"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/tasks/1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tasks",
+                                        "1"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Update Task",
                             "request": {
                                 "method": "PUT",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "body": { "mode": "raw", "raw": "{\n    \"status\": \"in_progress\",\n    \"order\": 2\n}", "options": { "raw": { "language": "json" } } },
-                                "url": { "raw": "{{base_url}}/tasks/1", "host": ["{{base_url}}"], "path": ["tasks", "1"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"status\": \"in_progress\",\n    \"order\": 2\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/tasks/1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tasks",
+                                        "1"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Delete Task",
                             "request": {
                                 "method": "DELETE",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "url": { "raw": "{{base_url}}/tasks/1", "host": ["{{base_url}}"], "path": ["tasks", "1"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/tasks/1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tasks",
+                                        "1"
+                                    ]
+                                }
                             }
                         }
                     ]
@@ -369,17 +1204,63 @@
                             "name": "List Task Comments",
                             "request": {
                                 "method": "GET",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "url": { "raw": "{{base_url}}/tasks/1/comments", "host": ["{{base_url}}"], "path": ["tasks", "1", "comments"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/tasks/1/comments",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tasks",
+                                        "1",
+                                        "comments"
+                                    ]
+                                }
                             }
                         },
                         {
                             "name": "Add Task Comment",
                             "request": {
                                 "method": "POST",
-                                "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
-                                "body": { "mode": "raw", "raw": "{\n    \"body\": \"I will start working on this tomorrow.\"\n}", "options": { "raw": { "language": "json" } } },
-                                "url": { "raw": "{{base_url}}/tasks/1/comments", "host": ["{{base_url}}"], "path": ["tasks", "1", "comments"] }
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{jwt_token}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"body\": \"I will start working on this tomorrow.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/tasks/1/comments",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "tasks",
+                                        "1",
+                                        "comments"
+                                    ]
+                                }
                             }
                         }
                     ]

@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Task\Http\Controllers\TaskController;
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth:api')->group(function () {
     // Tasks scoped under a project
     Route::get('projects/{project}/tasks', [TaskController::class, 'index']);
     Route::post('projects/{project}/tasks', [TaskController::class, 'store']);

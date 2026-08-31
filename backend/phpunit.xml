@@ -32,5 +32,9 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="JWT_SECRET" value="testing12345678901234567890123456789012"/>
+        <env name="OFFICE_LATITUDE" value="3.8452"/>
+        <env name="OFFICE_LONGITUDE" value="11.4861"/>
+        <env name="OFFICE_RADIUS_METERS" value="200"/>
     </php>
 </phpunit>

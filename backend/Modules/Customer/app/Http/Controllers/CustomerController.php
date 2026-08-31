@@ -3,54 +3,42 @@
 namespace Modules\Customer\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Modules\Customer\Http\Requests\CustomerRequest;
+use Modules\Customer\Models\Customer;
+use Modules\Customer\Services\CustomerService;
 
 class CustomerController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(private readonly CustomerService $CustomerService)
     {
-        return view('customer::index');
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function index(): JsonResponse
     {
-        return view('customer::create');
+        return response()->json($this->CustomerService->getAll());
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function store(CustomerRequest $request): JsonResponse
     {
-        return view('customer::show');
+        $customer = $this->CustomerService->create($request->validated());
+        return response()->json($customer->load('user'), 201);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
+    public function show(Customer $customer): JsonResponse
     {
-        return view('customer::edit');
+        return response()->json($customer->load('user'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
+    public function update(CustomerRequest $request, Customer $customer): JsonResponse
+    {
+        $updated = $this->CustomerService->update($customer, $request->validated());
+        return response()->json($updated->load('user'));
+    }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
+    public function destroy(Customer $customer): JsonResponse
+    {
+        $this->CustomerService->delete($customer);
+        return response()->json(['message' => 'Customer deleted successfully.']);
+    }
 }
