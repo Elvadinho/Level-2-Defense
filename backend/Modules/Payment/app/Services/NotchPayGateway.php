@@ -25,6 +25,7 @@ class NotchPayGateway
         $response = Http::withHeaders([
             'Authorization' => $this->publicKey,
             'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
         ])->post("{$this->baseUrl}/payments", [
                     'amount' => $data['amount'],
                     'currency' => $data['currency'] ?? config('notchpay.currency'),
@@ -50,6 +51,7 @@ class NotchPayGateway
         $response = Http::withHeaders([
             'Authorization' => $this->publicKey,
             'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
         ])->put("{$this->baseUrl}/payments/{$reference}", [
                     'channel' => $channel,
                     'data' => [

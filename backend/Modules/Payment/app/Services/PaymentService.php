@@ -56,9 +56,21 @@ class PaymentService
                 'description' => "Payment for Invoice #{$invoice->invoice_number}",
             ]);
 
+            // NotchPay's own transaction reference (e.g. tr.xxx) — NOT our merchant PAY-xxx.
+            // Process/verify URLs must use this id; using the merchant reference returns 404.
+            $notchpayRef = $initResponse['transaction']['reference']
+                ?? $initResponse['reference']
+                ?? null;
+
+            if (!$notchpayRef) {
+                throw new \RuntimeException('NotchPay did not return a payment reference.');
+            }
+
+            $payment->update(['notchpay_trx_ref' => $notchpayRef]);
+
             // 3. Process via the chosen channel (triggers MoMo prompt)
-            $processResponse = $this->gateway->processPayment(
-                $reference,
+            $this->gateway->processPayment(
+                $notchpayRef,
                 $data['channel'],
                 $data['phone']
             );
@@ -66,7 +78,6 @@ class PaymentService
             // Update status to processing (MoMo prompt sent to phone)
             $payment->update([
                 'status' => 'processing',
-                'notchpay_trx_ref' => $initResponse['transaction']['reference'] ?? null,
             ]);
             return $payment->load('invoice', 'customer');
         });
@@ -79,7 +90,8 @@ class PaymentService
     {
         $payment = Payment::findOrFail($id);
 
-        $response = $this->gateway->verifyPayment($payment->notchpay_reference);
+        $notchpayRef = $payment->notchpay_trx_ref ?: $payment->notchpay_reference;
+        $response = $this->gateway->verifyPayment($notchpayRef);
         $status = $response['transaction']['status'] ?? 'pending';
 
         $payment->update([
@@ -100,14 +112,18 @@ class PaymentService
      */
     public function handleWebhook(array $data): void
     {
-        $reference = $data['data']['reference'] ?? null;
+        $reference = $data['data']['reference']
+            ?? $data['data']['merchant_reference']
+            ?? null;
         $status = $data['data']['status'] ?? null;
 
         if (!$reference || !$status) {
             return;
         }
 
-        $payment = Payment::where('notchpay_reference', $reference)->first();
+        $payment = Payment::where('notchpay_reference', $reference)
+            ->orWhere('notchpay_trx_ref', $reference)
+            ->first();
 
         if (!$payment) {
             return;

@@ -52,16 +52,17 @@ class PaymentApiTest extends TestCase
             'api.notchpay.co/payments' => Http::response([
                 'status' => 'Accepted',
                 'transaction' => [
-                    'reference' => 'PAY-TESTREF12345',
+                    'reference' => 'tr.notchpay-mtn-123',
+                    'merchant_reference' => 'PAY-TESTREF12345',
                     'status' => 'pending',
                     'amount' => 550000,
                     'currency' => 'XAF',
                 ],
             ], 201),
-            'api.notchpay.co/payments/*' => Http::response([
+            'api.notchpay.co/payments/tr.notchpay-mtn-123' => Http::response([
                 'status' => 'Accepted',
                 'transaction' => [
-                    'reference' => 'PAY-TESTREF12345',
+                    'reference' => 'tr.notchpay-mtn-123',
                     'status' => 'processing',
                 ],
             ], 200),
@@ -82,7 +83,13 @@ class PaymentApiTest extends TestCase
             'channel' => 'cm.mtn',
             'phone' => '+237680000000',
             'status' => 'processing',
+            'notchpay_trx_ref' => 'tr.notchpay-mtn-123',
         ]);
+
+        Http::assertSent(function ($request) {
+            return $request->method() === 'PUT'
+                && str_contains($request->url(), '/payments/tr.notchpay-mtn-123');
+        });
     }
 
     public function test_can_initiate_orange_money_payment()
@@ -91,16 +98,17 @@ class PaymentApiTest extends TestCase
             'api.notchpay.co/payments' => Http::response([
                 'status' => 'Accepted',
                 'transaction' => [
-                    'reference' => 'PAY-TESTREF67890',
+                    'reference' => 'tr.notchpay-orange-456',
+                    'merchant_reference' => 'PAY-TESTREF67890',
                     'status' => 'pending',
                     'amount' => 550000,
                     'currency' => 'XAF',
                 ],
             ], 201),
-            'api.notchpay.co/payments/*' => Http::response([
+            'api.notchpay.co/payments/tr.notchpay-orange-456' => Http::response([
                 'status' => 'Accepted',
                 'transaction' => [
-                    'reference' => 'PAY-TESTREF67890',
+                    'reference' => 'tr.notchpay-orange-456',
                     'status' => 'processing',
                 ],
             ], 200),
@@ -167,6 +175,7 @@ class PaymentApiTest extends TestCase
             'invoice_id' => $this->invoice->id,
             'customer_id' => $this->customer->id,
             'notchpay_reference' => 'PAY-VERIFY123',
+            'notchpay_trx_ref' => 'tr.notchpay-verify-123',
             'amount' => 550000,
             'currency' => 'XAF',
             'channel' => 'cm.mtn',
@@ -176,9 +185,9 @@ class PaymentApiTest extends TestCase
 
         // Mock the verify endpoint to return 'complete'
         Http::fake([
-            'api.notchpay.co/payments/PAY-VERIFY123' => Http::response([
+            'api.notchpay.co/payments/tr.notchpay-verify-123' => Http::response([
                 'transaction' => [
-                    'reference' => 'PAY-VERIFY123',
+                    'reference' => 'tr.notchpay-verify-123',
                     'status' => 'complete',
                 ],
             ], 200),
@@ -207,6 +216,7 @@ class PaymentApiTest extends TestCase
             'invoice_id' => $this->invoice->id,
             'customer_id' => $this->customer->id,
             'notchpay_reference' => 'PAY-WEBHOOK123',
+            'notchpay_trx_ref' => 'tr.notchpay-webhook-123',
             'amount' => 550000,
             'currency' => 'XAF',
             'channel' => 'cm.mtn',

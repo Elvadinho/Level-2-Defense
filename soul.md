@@ -1,7 +1,7 @@
 # Modoo ERP — Project Soul
 
 > **This file is the persistent project memory. It is automatically updated after every implementation step.**
-> Last updated: 2026-08-31
+> Last updated: 2026-09-01
 
 ---
 
@@ -137,6 +137,7 @@ Level-2-Defense/
 | 8 | Default role is `employee` on registration | Most users are employees; admins assign special roles | 2026-08-24 |
 | 9 | API testing docs auto-generated | `backend/docs/api-testing.md` updated per module | 2026-08-25 |
 | 10 | soul.md auto-updated | Progress tracked automatically after each step | 2026-08-25 |
+| 11 | NotchPay process/verify use `transaction.reference` | Merchant `PAY-xxx` is not NotchPay's payment id; using it causes `Payment Not Found` | 2026-09-01 |
 
 ---
 
