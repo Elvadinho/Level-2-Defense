@@ -48,4 +48,93 @@ class ProjectApiTest extends TestCase
             'manager_id' => $this->manager->id
         ]);
     }
+    public function test_can_list_projects()
+    {
+        \Modules\Project\Models\Project::create([
+            'name' => 'Project A',
+            'manager_id' => $this->manager->id,
+            'status' => 'planning'
+        ]);
+
+        $response = $this->getJson('/api/projects');
+
+        $response->assertStatus(200)
+                 ->assertJsonCount(1);
+    }
+
+    public function test_can_get_single_project()
+    {
+        $project = \Modules\Project\Models\Project::create([
+            'name' => 'Project A',
+            'manager_id' => $this->manager->id,
+            'status' => 'planning'
+        ]);
+
+        $response = $this->getJson("/api/projects/{$project->id}");
+
+        $response->assertStatus(200)
+                 ->assertJsonPath('name', 'Project A');
+    }
+
+    public function test_can_update_project()
+    {
+        $project = \Modules\Project\Models\Project::create([
+            'name' => 'Project A',
+            'manager_id' => $this->manager->id,
+            'status' => 'planning'
+        ]);
+
+        $response = $this->putJson("/api/projects/{$project->id}", [
+            'name' => 'Project A',
+            'manager_id' => $this->manager->id,
+            'status' => 'in_progress'
+        ]);
+
+        $response->assertStatus(200)
+                 ->assertJsonPath('status', 'in_progress');
+
+        $this->assertDatabaseHas('projects', ['id' => $project->id, 'status' => 'in_progress']);
+    }
+
+    public function test_can_delete_project()
+    {
+        $project = \Modules\Project\Models\Project::create([
+            'name' => 'Project A',
+            'manager_id' => $this->manager->id,
+            'status' => 'planning'
+        ]);
+
+        $response = $this->deleteJson("/api/projects/{$project->id}");
+
+        $response->assertStatus(200);
+        $this->assertDatabaseMissing('projects', ['id' => $project->id]);
+    }
+
+    public function test_can_add_and_list_members()
+    {
+        $project = \Modules\Project\Models\Project::create([
+            'name' => 'Project A',
+            'manager_id' => $this->manager->id,
+            'status' => 'planning'
+        ]);
+
+        $employeeUser = User::factory()->create();
+        $department = Department::create(['name' => 'IT']);
+        $employee = Employee::create([
+            'user_id' => $employeeUser->id,
+            'department_id' => $department->id,
+            'job_title' => 'Dev',
+            'hire_date' => '2026-01-01',
+        ]);
+
+        $response = $this->postJson("/api/projects/{$project->id}/members", [
+            'employee_id' => $employee->id,
+            'role' => 'developer'
+        ]);
+
+        $response->assertStatus(201);
+
+        $responseList = $this->getJson("/api/projects/{$project->id}/members");
+        $responseList->assertStatus(200);
+    }
 }

@@ -62,7 +62,7 @@ Level-2-Defense/
 | 4 | Project | ✅ Implemented | Project, ProjectMember | ProjectService | ProjectController | ✅ |
 | 5 | Task | ✅ Implemented | Task, TaskComment | TaskService | TaskController | ✅ |
 | 6 | Customer | ✅ Implemented | Customer | CustomerService | CustomerController | ✅ |
-| 7 | Quotation | ⬜ Not started | — | — | — | — |
+| 7 | Quotation | ✅ Implemented | Quotation, QuotationItem | QuotationServices | QuotationController | ✅ |
 | 8 | Invoice | ⬜ Not started | — | — | — | — |
 | 9 | Payment | ⬜ Not started | — | — | — | — |
 | 10 | Notification | ⬜ Not started | — | — | — | — |
@@ -87,7 +87,8 @@ Level-2-Defense/
 | `task_assignments` | Task | ✅ Exists | — |
 | `comments` | Task | ✅ Exists | — |
 | `customers` | Customer | ✅ Exists | Company/contact info, linked to user account |
-| `quotations` | Quotation | ⬜ Pending | — |
+| `quotations` | Quotation | ✅ Exists | Quotations for customers |
+| `quotation_items` | Quotation | ✅ Exists | Items inside a quotation |
 | `invoices` | Invoice | ⬜ Pending | — |
 | `payments` | Payment | ⬜ Pending | — |
 | `notifications` | Notification | ⬜ Pending | — |
@@ -157,7 +158,7 @@ Level-2-Defense/
 
 ## Current Phase
 
-**Next**: Quotation Module (quotations, quotation items)
+**Next**: Invoice Module
 
 ---
 
@@ -168,7 +169,7 @@ Level-2-Defense/
 3. ✅ Project Module (projects, project members)
 4. ✅ Task Module (tasks, comments)
 5. ✅ Customer Module
-6. ⬜ Quotation Module
+6. ✅ Quotation Module
 7. ⬜ Invoice Module
 8. ⬜ Payment Module (external API integration)
 9. ⬜ Notification Module (SMTP)

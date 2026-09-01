@@ -3,6 +3,6 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Quotation\Http\Controllers\QuotationController;
 
-Route::middleware(['auth:api'])->prefix('v1')->group(function () {
-    Route::apiResource('quotations', QuotationController::class)->names('quotation');
+Route::middleware(['auth:api'])->group(function () {
+    Route::apiResource('quotations', QuotationController::class);
 });

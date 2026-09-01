@@ -1,56 +1,38 @@
 <?php
-
 namespace Modules\Quotation\Http\Controllers;
-
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Modules\Quotation\Http\Requests\QuotationRequest;
+use Modules\Quotation\Services\QuotationServices;
 
 class QuotationController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(private QuotationServices $quotationServices)
     {
-        return view('quotation::index');
+    }
+    public function index(): JsonResponse
+    {
+        return response()->json($this->quotationServices->getAll());
+    }
+    public function store(QuotationRequest $request): JsonResponse
+    {
+        $quotation = $this->quotationServices->create($request->validated());
+        return response()->json($quotation, 201);
+    }
+    public function show($id): JsonResponse
+    {
+        return response()->json($this->quotationServices->getById($id));
+    }
+    public function update(QuotationRequest $request, $id): JsonResponse
+    {
+        $quotation = $this->quotationServices->updateStatus($id, $request->validated());
+        return response()->json($quotation, 200);
+    }
+    public function destroy($id): JsonResponse
+    {
+        $this->quotationServices->delete($id);
+        return response()->json(['message' => 'Quotation deleted successfully'], 200);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        return view('quotation::create');
-    }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
-    {
-        return view('quotation::show');
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
-    {
-        return view('quotation::edit');
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
 }
