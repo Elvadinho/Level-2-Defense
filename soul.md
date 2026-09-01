@@ -63,8 +63,8 @@ Level-2-Defense/
 | 5 | Task | ✅ Implemented | Task, TaskComment | TaskService | TaskController | ✅ |
 | 6 | Customer | ✅ Implemented | Customer | CustomerService | CustomerController | ✅ |
 | 7 | Quotation | ✅ Implemented | Quotation, QuotationItem | QuotationServices | QuotationController | ✅ |
-| 8 | Invoice | ⬜ Not started | — | — | — | — |
-| 9 | Payment | ⬜ Not started | — | — | — | — |
+| 8 | Invoice | ✅ Implemented | Invoice, InvoiceItem | InvoiceService | InvoiceController | ✅ |
+| 9 | Payment | ✅ Implemented | Payment | PaymentService, NotchPayGateway | PaymentController | ✅ |
 | 10 | Notification | ⬜ Not started | — | — | — | — |
 | 11 | AIAssistant | ⬜ Not started | — | — | — | — |
 
@@ -89,8 +89,9 @@ Level-2-Defense/
 | `customers` | Customer | ✅ Exists | Company/contact info, linked to user account |
 | `quotations` | Quotation | ✅ Exists | Quotations for customers |
 | `quotation_items` | Quotation | ✅ Exists | Items inside a quotation |
-| `invoices` | Invoice | ⬜ Pending | — |
-| `payments` | Payment | ⬜ Pending | — |
+| `invoices` | Invoice | ✅ Exists | Invoices for customers |
+| `invoice_items` | Invoice | ✅ Exists | Line items inside an invoice |
+| `payments` | Payment | ✅ Exists | NotchPay integration (MTN MoMo, Orange Money) |
 | `notifications` | Notification | ⬜ Pending | — |
 
 ---
@@ -158,7 +159,7 @@ Level-2-Defense/
 
 ## Current Phase
 
-**Next**: Invoice Module
+**Next**: Notification Module (SMTP)
 
 ---
 
@@ -170,8 +171,8 @@ Level-2-Defense/
 4. ✅ Task Module (tasks, comments)
 5. ✅ Customer Module
 6. ✅ Quotation Module
-7. ⬜ Invoice Module
-8. ⬜ Payment Module (external API integration)
+7. ✅ Invoice Module
+8. ✅ Payment Module (NotchPay - Orange Money & MTN MoMo)
 9. ⬜ Notification Module (SMTP)
 10. ⬜ AI Assistant Module (Claude API)
 11. ⬜ Dashboard / KPIs

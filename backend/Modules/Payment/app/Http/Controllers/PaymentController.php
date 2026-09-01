@@ -3,54 +3,77 @@
 namespace Modules\Payment\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Payment\Http\Requests\PaymentRequest;
+use Modules\Payment\Services\PaymentService;
+use Modules\Payment\Services\NotchPayGateway;
 
 class PaymentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(private PaymentService $paymentService)
     {
-        return view('payment::index');
     }
 
     /**
-     * Show the form for creating a new resource.
+     * List all payments.
      */
-    public function create()
+    public function index(): JsonResponse
     {
-        return view('payment::create');
+        return response()->json($this->paymentService->getAll());
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Initiate a new payment (Initialize + Process on NotchPay).
+     * The customer will receive a MoMo prompt on their phone.
      */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function store(PaymentRequest $request): JsonResponse
     {
-        return view('payment::show');
+        try {
+            $payment = $this->paymentService->initiatePayment($request->validated());
+            return response()->json($payment, 201);
+        } catch (\RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 502);
+        }
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Get a single payment.
      */
-    public function edit($id)
+    public function show($id): JsonResponse
     {
-        return view('payment::edit');
+        return response()->json($this->paymentService->getById($id));
     }
 
     /**
-     * Update the specified resource in storage.
+     * Manually verify a payment status against NotchPay.
      */
-    public function update(Request $request, $id) {}
+    public function verify($id): JsonResponse
+    {
+        try {
+            $payment = $this->paymentService->verifyPayment($id);
+            return response()->json($payment);
+        } catch (\RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 502);
+        }
+    }
 
     /**
-     * Remove the specified resource from storage.
+     * Webhook endpoint — NotchPay calls this when payment status changes.
+     * This route should NOT require auth:api middleware.
      */
-    public function destroy($id) {}
+    public function webhook(Request $request, NotchPayGateway $gateway): JsonResponse
+    {
+        // Verify the webhook signature
+        $signature = $request->header('x-notch-signature', '');
+        $payload = $request->getContent();
+
+        if (!$gateway->verifyWebhookSignature($payload, $signature)) {
+            return response()->json(['error' => 'Invalid signature'], 403);
+        }
+
+        $this->paymentService->handleWebhook($request->all());
+
+        return response()->json(['message' => 'Webhook received'], 200);
+    }
 }

@@ -1266,6 +1266,494 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "7. Quotation Module",
+            "item": [
+                {
+                    "name": "List Quotations",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/quotations",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "quotations"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Quotation",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"customer_id\": 1,\n    \"quotation_number\": \"QT-2026-001\",\n    \"valid_until\": \"2026-10-01\",\n    \"project_name\": \"Corporate Website Redesign\",\n    \"project_type\": \"Web Development\",\n    \"technology_stack\": [\"React\", \"Laravel\", \"PostgreSQL\"],\n    \"notes\": \"Includes 3 months of post-launch support\",\n    \"items\": [\n        {\n            \"service_category\": \"Design\",\n            \"description\": \"UI/UX Design & Prototyping\",\n            \"quantity\": 1,\n            \"unit\": \"Flat Rate\",\n            \"unit_price\": 250000\n        },\n        {\n            \"service_category\": \"Development\",\n            \"description\": \"Frontend & Backend Development\",\n            \"quantity\": 80,\n            \"unit\": \"Hours\",\n            \"unit_price\": 5000\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/quotations",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "quotations"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Quotation by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/quotations/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "quotations",
+                                "1"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Quotation Status",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"accepted\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/quotations/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "quotations",
+                                "1"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Quotation",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/quotations/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "quotations",
+                                "1"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "8. Invoice Module",
+            "item": [
+                {
+                    "name": "List Invoices",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/invoices",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "invoices"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Invoice",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"customer_id\": 1,\n    \"invoice_number\": \"INV-2026-001\",\n    \"issue_date\": \"2026-09-01\",\n    \"due_date\": \"2026-09-15\",\n    \"tax_rate\": 10,\n    \"notes\": \"Thank you for your business!\",\n    \"items\": [\n        {\n            \"service_category\": \"Development\",\n            \"description\": \"Frontend Development - React\",\n            \"quantity\": 40,\n            \"unit\": \"Hours\",\n            \"unit_price\": 5000\n        },\n        {\n            \"service_category\": \"Hosting\",\n            \"description\": \"Cloud Hosting Setup & 1 Year\",\n            \"quantity\": 1,\n            \"unit\": \"Flat Rate\",\n            \"unit_price\": 120000\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/invoices",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "invoices"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Invoice by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/invoices/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "invoices",
+                                "1"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Invoice Status",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"paid\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/invoices/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "invoices",
+                                "1"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Invoice",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/invoices/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "invoices",
+                                "1"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "9. Payment Module (NotchPay)",
+            "item": [
+                {
+                    "name": "Initiate Payment (MTN MoMo)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"invoice_id\": 1,\n    \"channel\": \"cm.mtn\",\n    \"phone\": \"+237680000000\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/payments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "payments"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Initiate Payment (Orange Money)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"invoice_id\": 1,\n    \"channel\": \"cm.orange\",\n    \"phone\": \"+237690000000\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/payments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "payments"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "List Payments",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/payments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "payments"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Payment by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/payments/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "payments",
+                                "1"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Verify Payment Status",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/payments/1/verify",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "payments",
+                                "1",
+                                "verify"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Webhook (NotchPay Callback)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "x-notch-signature",
+                                "value": "your_computed_hmac_signature_here"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"event\": \"payment.complete\",\n    \"data\": {\n        \"reference\": \"PAY-XXXXXXXXXXXXX\",\n        \"status\": \"complete\",\n        \"amount\": 550000\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/payments/webhook",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "payments",
+                                "webhook"
+                            ]
+                        }
+                    }
+                }
+            ]
         }
     ]
 }
