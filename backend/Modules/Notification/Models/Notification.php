@@ -14,6 +14,7 @@ class Notification extends Model
     protected $table = 'notifications';
 
     protected $fillable = [
+        'uuid',
         'user_id',
         'type',
         'title',
@@ -24,6 +25,15 @@ class Notification extends Model
         'error_log',
         'read_at',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
 
     protected $casts = [
         'data' => 'array',
