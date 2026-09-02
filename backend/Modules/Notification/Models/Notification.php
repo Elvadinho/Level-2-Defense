@@ -3,18 +3,18 @@
 namespace Modules\Notification\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\User;
 
 class Notification extends Model
 {
-    use HasUuids, HasFactory;
+    use HasFactory;
 
     protected $table = 'notifications';
 
     protected $fillable = [
+        'uuid',
         'user_id',
         'type',
         'title',
@@ -25,6 +25,15 @@ class Notification extends Model
         'error_log',
         'read_at',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
 
     protected $casts = [
         'data' => 'array',
