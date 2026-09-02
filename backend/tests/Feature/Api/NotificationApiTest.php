@@ -13,7 +13,7 @@ class NotificationApiTest extends TestCase
 
     public function test_get_notifications_index()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => \Modules\Authentication\Enums\Role::EMPLOYEE]);
         $token = auth('api')->login($user);
 
         Notification::create([
@@ -49,7 +49,7 @@ class NotificationApiTest extends TestCase
 
     public function test_unread_count_and_mark_read()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => \Modules\Authentication\Enums\Role::EMPLOYEE]);
         $token = auth('api')->login($user);
 
         $n1 = Notification::create([
@@ -81,7 +81,7 @@ class NotificationApiTest extends TestCase
 
     public function test_destroy_and_destroy_all()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => \Modules\Authentication\Enums\Role::EMPLOYEE]);
         $token = auth('api')->login($user);
 
         $n = Notification::create([
