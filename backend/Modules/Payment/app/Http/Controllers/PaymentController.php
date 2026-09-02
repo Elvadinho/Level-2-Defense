@@ -24,8 +24,8 @@ class PaymentController extends Controller
     }
 
     /**
-     * Initiate a new payment (Initialize + Process on NotchPay).
-     * The customer will receive a MoMo prompt on their phone.
+     * Initiate a new payment.
+     * Mobile money: NotchPay sends a MoMo prompt. Card: response includes authorization_url.
      */
     public function store(PaymentRequest $request): JsonResponse
     {
@@ -43,6 +43,25 @@ class PaymentController extends Controller
     public function show($id): JsonResponse
     {
         return response()->json($this->paymentService->getById($id));
+    }
+
+    /**
+     * NotchPay redirects the customer here after card checkout.
+     */
+    public function callback(Request $request): JsonResponse
+    {
+        $reference = $request->query('reference') ?? $request->query('trxref');
+
+        if (!$reference) {
+            return response()->json(['error' => 'Missing payment reference'], 422);
+        }
+
+        try {
+            $payment = $this->paymentService->verifyByNotchPayReference($reference);
+            return response()->json($payment);
+        } catch (\RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 502);
+        }
     }
 
     /**

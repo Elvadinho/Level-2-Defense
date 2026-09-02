@@ -33,6 +33,9 @@ class PaymentService
         return DB::transaction(function () use ($data) {
             $invoice = Invoice::with('customer')->findOrFail($data['invoice_id']);
             $reference = 'PAY-' . Str::upper(Str::random(12));
+            $isCard = $data['channel'] === 'cm.card';
+            $phone = $this->gateway->formatPhone($data['phone'] ?? null)
+                ?? $this->gateway->formatPhone($invoice->customer->phone);
 
             // 1. Create local payment record
             $payment = Payment::create([
@@ -40,21 +43,27 @@ class PaymentService
                 'customer_id' => $invoice->customer_id,
                 'amount' => $invoice->total_amount,
                 'currency' => config('notchpay.currency'),
-                'channel' => $data['channel'],     // 'cm.mtn' or 'cm.orange'
-                'phone' => $data['phone'],
+                'channel' => $data['channel'],     // 'cm.mtn', 'cm.orange', or 'cm.card'
+                'phone' => $phone,
                 'notchpay_reference' => $reference,
                 'status' => 'pending',
             ]);
 
             // 2. Initialize on NotchPay
-            $initResponse = $this->gateway->initializePayment([
+            $initPayload = [
                 'amount' => $invoice->total_amount,
                 'currency' => config('notchpay.currency'),
                 'email' => $invoice->customer->email,
-                'phone' => $data['phone'],
+                'phone' => $phone,
                 'reference' => $reference,
                 'description' => "Payment for Invoice #{$invoice->invoice_number}",
-            ]);
+            ];
+
+            if ($isCard) {
+                $initPayload['channels'] = ['card'];
+            }
+
+            $initResponse = $this->gateway->initializePayment($initPayload);
 
             // NotchPay's own transaction reference (e.g. tr.xxx) — NOT our merchant PAY-xxx.
             // Process/verify URLs must use this id; using the merchant reference returns 404.
@@ -68,18 +77,21 @@ class PaymentService
 
             $payment->update(['notchpay_trx_ref' => $notchpayRef]);
 
-            // 3. Process via the chosen channel (triggers MoMo prompt)
-            $this->gateway->processPayment(
-                $notchpayRef,
-                $data['channel'],
-                $data['phone']
-            );
+            // Card (Visa/Mastercard): customer pays on NotchPay checkout — never collect PAN here.
+            // Mobile money: process the channel so the customer gets a MoMo prompt.
+            if (!$isCard) {
+                $this->gateway->processPayment(
+                    $notchpayRef,
+                    $data['channel'],
+                    $phone
+                );
+                $payment->update(['status' => 'processing']);
+            }
 
-            // Update status to processing (MoMo prompt sent to phone)
-            $payment->update([
-                'status' => 'processing',
-            ]);
-            return $payment->load('invoice', 'customer');
+            $payment = $payment->load('invoice', 'customer');
+            $payment->setAttribute('authorization_url', $initResponse['authorization_url'] ?? null);
+
+            return $payment;
         });
     }
 
@@ -105,6 +117,15 @@ class PaymentService
         }
 
         return $payment;
+    }
+
+    public function verifyByNotchPayReference(string $reference): Payment
+    {
+        $payment = Payment::where('notchpay_reference', $reference)
+            ->orWhere('notchpay_trx_ref', $reference)
+            ->firstOrFail();
+
+        return $this->verifyPayment($payment->id);
     }
 
     /**

@@ -21,7 +21,7 @@ return new class extends Migration {
             $table->string('notchpay_trx_ref')->nullable(); // Transaction reference from NotchPay
             $table->decimal('amount', 15, 2);
             $table->string('currency')->default('XAF');
-            $table->string('channel')->nullable(); // 'cm.mtn', 'cm.orange'
+            $table->string('channel')->nullable(); // 'cm.mtn', 'cm.orange', 'cm.card'
             $table->string('phone')->nullable(); // Customer's phone number
             $table->enum('status', ['pending', 'processing', 'complete', 'failed', 'cancelled'])->default('pending');
             $table->text('failure_reason')->nullable();

@@ -7,9 +7,12 @@ use Modules\Payment\Http\Controllers\PaymentController;
 Route::middleware(['auth:api'])->group(function () {
     Route::get('payments', [PaymentController::class, 'index']);
     Route::post('payments', [PaymentController::class, 'store']);
-    Route::get('payments/{id}', [PaymentController::class, 'show']);
-    Route::post('payments/{id}/verify', [PaymentController::class, 'verify']);
+    Route::get('payments/{id}', [PaymentController::class, 'show'])->whereNumber('id');
+    Route::post('payments/{id}/verify', [PaymentController::class, 'verify'])->whereNumber('id');
 });
+
+// NotchPay redirects here after card checkout — no auth
+Route::get('payments/callback', [PaymentController::class, 'callback']);
 
 // Webhook route — NO auth middleware (NotchPay calls this externally)
 Route::post('payments/webhook', [PaymentController::class, 'webhook']);

@@ -13,8 +13,8 @@ class PaymentRequest extends FormRequest
     {
         return [
             'invoice_id' => 'required|exists:invoices,id',
-            'channel' => 'required|in:cm.mtn,cm.orange',
-            'phone' => 'required|string|regex:/^\+?237[0-9]{9}$/', // Cameroon phone format
+            'channel' => 'required|in:cm.mtn,cm.orange,cm.card',
+            'phone' => 'required_unless:channel,cm.card|nullable|string|regex:/^\+?237[0-9]{9}$/',
         ];
     }
 
@@ -29,7 +29,7 @@ class PaymentRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'channel.in' => 'Channel must be either cm.mtn (MTN MoMo) or cm.orange (Orange Money)',
+            'channel.in' => 'Channel must be cm.mtn (MTN MoMo), cm.orange (Orange Money), or cm.card (Visa/Mastercard)',
             'phone.regex' => 'Phone must be a valid Cameroon number (e.g., +237690000000)',
         ];
     }

@@ -17,23 +17,52 @@ class NotchPayGateway
     }
 
     /**
+     * NotchPay rejects formatted numbers (spaces, dashes) and incomplete local numbers.
+     * Returns E.164 like +237690000000, or null if it cannot be made valid.
+     */
+    public function formatPhone(?string $phone): ?string
+    {
+        if ($phone === null || trim($phone) === '') {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $phone) ?? '';
+
+        // Cameroon local mobile: 6XXXXXXXX
+        if (strlen($digits) === 9 && str_starts_with($digits, '6')) {
+            $digits = '237' . $digits;
+        }
+
+        // NotchPay expects a real MSISDN. Only send Cameroon E.164 (+237 + 9 digits).
+        if (strlen($digits) === 12 && str_starts_with($digits, '237')) {
+            return '+' . $digits;
+        }
+
+        return null;
+    }
+
+    /**
      * Step 1: Initialize a payment on NotchPay.
      * Returns the full response body including "reference".
      */
     public function initializePayment(array $data): array
     {
+        $payload = array_filter([
+            'amount' => $data['amount'],
+            'currency' => $data['currency'] ?? config('notchpay.currency'),
+            'email' => $data['email'] ?? null,
+            'phone' => $this->formatPhone($data['phone'] ?? null),
+            'reference' => $data['reference'],
+            'description' => $data['description'] ?? 'Invoice Payment',
+            'callback' => $data['callback'] ?? config('notchpay.callback_url'),
+            'channels' => $data['channels'] ?? null,
+        ], fn ($value) => $value !== null && $value !== '');
+
         $response = Http::withHeaders([
             'Authorization' => $this->publicKey,
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
-        ])->post("{$this->baseUrl}/payments", [
-                    'amount' => $data['amount'],
-                    'currency' => $data['currency'] ?? config('notchpay.currency'),
-                    'email' => $data['email'],
-                    'phone' => $data['phone'],
-                    'reference' => $data['reference'],
-                    'description' => $data['description'] ?? 'Invoice Payment',
-                ]);
+        ])->post("{$this->baseUrl}/payments", $payload);
 
         if ($response->failed()) {
             Log::error('NotchPay Init Failed', ['body' => $response->body()]);
@@ -44,7 +73,7 @@ class NotchPayGateway
     }
 
     /**
-     * Step 2: Process the payment via a specific channel (Orange Money / MTN).
+     * Step 2: Process the payment via a specific channel (Orange Money / MTN / Card).
      */
     public function processPayment(string $reference, string $channel, string $phone): array
     {
@@ -55,7 +84,7 @@ class NotchPayGateway
         ])->put("{$this->baseUrl}/payments/{$reference}", [
                     'channel' => $channel,
                     'data' => [
-                        'phone' => $phone,
+                        'phone' => $this->formatPhone($phone) ?? $phone,
                     ],
                 ]);
 

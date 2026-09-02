@@ -221,4 +221,36 @@
 > `user_id` is optional — link to an existing user account with role `customer`, or omit to create a standalone customer record.
 
 ---
-*(More modules will be added here as we build them)*
+
+## Payment Module (`/api/payments`)
+*(Initiate/list/show/verify require Bearer Token. Callback and webhook do not.)*
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/payments` | Initiate payment (MTN, Orange, or Visa/card) |
+| GET | `/api/payments` | List all payments |
+| GET | `/api/payments/{id}` | Get a payment |
+| POST | `/api/payments/{id}/verify` | Verify status with NotchPay |
+| GET | `/api/payments/callback` | NotchPay redirect after card checkout |
+| POST | `/api/payments/webhook` | NotchPay webhook |
+
+**POST `/api/payments` — Mobile Money**
+```json
+{
+    "invoice_id": 1,
+    "channel": "cm.mtn",
+    "phone": "+237680000000"
+}
+```
+`channel`: `cm.mtn` or `cm.orange`. Phone is required.
+
+**POST `/api/payments` — Visa / Mastercard**
+```json
+{
+    "invoice_id": 1,
+    "channel": "cm.card"
+}
+```
+Response includes `authorization_url`. Open that URL to pay on NotchPay checkout (card details never go through this API). After payment, NotchPay redirects to `/api/payments/callback`.
+
+---

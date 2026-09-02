@@ -254,6 +254,120 @@ class PaymentApiTest extends TestCase
         ]);
     }
 
+    public function test_can_initiate_visa_card_payment()
+    {
+        Http::fake([
+            'api.notchpay.co/payments' => Http::response([
+                'status' => 'Accepted',
+                'authorization_url' => 'https://pay.notchpay.co/pay_card_abc',
+                'transaction' => [
+                    'reference' => 'tr.notchpay-card-789',
+                    'status' => 'pending',
+                    'amount' => 550000,
+                    'currency' => 'XAF',
+                ],
+            ], 201),
+        ]);
+
+        $response = $this->postJson('/api/payments', [
+            'invoice_id' => $this->invoice->id,
+            'channel' => 'cm.card',
+        ]);
+
+        $response->assertStatus(201)
+                 ->assertJsonPath('channel', 'cm.card')
+                 ->assertJsonPath('status', 'pending')
+                 ->assertJsonPath('authorization_url', 'https://pay.notchpay.co/pay_card_abc');
+
+        $this->assertDatabaseHas('payments', [
+            'invoice_id' => $this->invoice->id,
+            'channel' => 'cm.card',
+            'status' => 'pending',
+            'notchpay_trx_ref' => 'tr.notchpay-card-789',
+        ]);
+
+        Http::assertSent(function ($request) {
+            return $request->method() === 'POST'
+                && str_contains($request->url(), '/payments')
+                && ($request->data()['channels'] ?? null) === ['card']
+                && ($request->data()['phone'] ?? null) === '+237690000000';
+        });
+
+        Http::assertNotSent(function ($request) {
+            return $request->method() === 'PUT';
+        });
+    }
+
+    public function test_card_init_omits_invalid_customer_phone()
+    {
+        $this->customer->update(['phone' => '+225 07 00 00 00']);
+
+        Http::fake([
+            'api.notchpay.co/payments' => Http::response([
+                'status' => 'Accepted',
+                'authorization_url' => 'https://pay.notchpay.co/pay_card_abc',
+                'transaction' => [
+                    'reference' => 'tr.notchpay-card-phone',
+                    'status' => 'pending',
+                ],
+            ], 201),
+        ]);
+
+        $response = $this->postJson('/api/payments', [
+            'invoice_id' => $this->invoice->id,
+            'channel' => 'cm.card',
+        ]);
+
+        $response->assertStatus(201);
+
+        Http::assertSent(function ($request) {
+            $body = $request->data();
+
+            return $request->method() === 'POST'
+                && str_contains($request->url(), '/payments')
+                && ! array_key_exists('phone', $body)
+                && ($body['email'] ?? null) === 'jane@technova.com';
+        });
+    }
+
+    public function test_card_callback_verifies_payment()
+    {
+        $payment = Payment::create([
+            'invoice_id' => $this->invoice->id,
+            'customer_id' => $this->customer->id,
+            'notchpay_reference' => 'PAY-CARD123',
+            'notchpay_trx_ref' => 'tr.notchpay-card-callback',
+            'amount' => 550000,
+            'currency' => 'XAF',
+            'channel' => 'cm.card',
+            'status' => 'pending',
+        ]);
+
+        Http::fake([
+            'api.notchpay.co/payments/tr.notchpay-card-callback' => Http::response([
+                'transaction' => [
+                    'reference' => 'tr.notchpay-card-callback',
+                    'status' => 'complete',
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->getJson('/api/payments/callback?reference=tr.notchpay-card-callback');
+
+        $response->assertStatus(200)
+                 ->assertJsonPath('status', 'complete');
+
+        $this->assertDatabaseHas('payments', [
+            'id' => $payment->id,
+            'status' => 'complete',
+        ]);
+
+        $this->assertDatabaseHas('invoices', [
+            'id' => $this->invoice->id,
+            'status' => 'paid',
+        ]);
+    }
+
     public function test_invalid_channel_is_rejected()
     {
         $response = $this->postJson('/api/payments', [

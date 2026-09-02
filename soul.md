@@ -91,7 +91,7 @@ Level-2-Defense/
 | `quotation_items` | Quotation | ✅ Exists | Items inside a quotation |
 | `invoices` | Invoice | ✅ Exists | Invoices for customers |
 | `invoice_items` | Invoice | ✅ Exists | Line items inside an invoice |
-| `payments` | Payment | ✅ Exists | NotchPay integration (MTN MoMo, Orange Money) |
+| `payments` | Payment | ✅ Exists | NotchPay integration (MTN MoMo, Orange Money, Visa/card) |
 | `notifications` | Notification | ⬜ Pending | — |
 
 ---
@@ -138,6 +138,7 @@ Level-2-Defense/
 | 9 | API testing docs auto-generated | `backend/docs/api-testing.md` updated per module | 2026-08-25 |
 | 10 | soul.md auto-updated | Progress tracked automatically after each step | 2026-08-25 |
 | 11 | NotchPay process/verify use `transaction.reference` | Merchant `PAY-xxx` is not NotchPay's payment id; using it causes `Payment Not Found` | 2026-09-01 |
+| 12 | Visa/card via NotchPay hosted checkout (`cm.card`) | Card numbers stay off our API (PCI); customer pays on `authorization_url` | 2026-09-01 |
 
 ---
 
@@ -173,7 +174,7 @@ Level-2-Defense/
 5. ✅ Customer Module
 6. ✅ Quotation Module
 7. ✅ Invoice Module
-8. ✅ Payment Module (NotchPay - Orange Money & MTN MoMo)
+8. ✅ Payment Module (NotchPay - Orange Money, MTN MoMo, Visa/card)
 9. ⬜ Notification Module (SMTP)
 10. ⬜ AI Assistant Module (Claude API)
 11. ⬜ Dashboard / KPIs

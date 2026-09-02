@@ -1641,6 +1641,74 @@
                     }
                 },
                 {
+                    "name": "Initiate Payment (Visa / Card)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"invoice_id\": 1,\n    \"channel\": \"cm.card\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/payments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "payments"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Initiate Payment (Visa / Card)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"invoice_id\": 1,\n    \"channel\": \"cm.card\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/payments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "payments"
+                            ]
+                        }
+                    }
+                },
+                {
                     "name": "List Payments",
                     "request": {
                         "method": "GET",
