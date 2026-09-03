@@ -1,7 +1,7 @@
 # Modoo ERP — Project Soul
 
 > **This file is the persistent project memory. It is automatically updated after every implementation step.**
-> Last updated: 2026-09-01
+> Last updated: 2026-09-03
 
 ---
 
@@ -66,7 +66,7 @@ Level-2-Defense/
 | 8 | Invoice | ✅ Implemented | Invoice, InvoiceItem | InvoiceService | InvoiceController | ✅ |
 | 9 | Payment | ✅ Implemented | Payment | PaymentService, NotchPayGateway | PaymentController | ✅ |
 | 10 | Notification | ⬜ Not started | — | — | — | — |
-| 11 | AIAssistant | ⬜ Not started | — | — | — | — |
+| 11 | AIAssistant | ✅ Implemented | AgentRequest | AssistantService | AIAssistantController | ✅ |
 
 ---
 
@@ -93,6 +93,7 @@ Level-2-Defense/
 | `invoice_items` | Invoice | ✅ Exists | Line items inside an invoice |
 | `payments` | Payment | ✅ Exists | NotchPay integration (MTN MoMo, Orange Money, Visa/card) |
 | `notifications` | Notification | ⬜ Pending | — |
+| `agent_requests` | AIAssistant | ✅ Exists | AI assistant conversation log (NVIDIA GPT-OSS 20B) |
 
 ---
 
@@ -106,6 +107,14 @@ Level-2-Defense/
 | POST | `/api/auth/login` | ❌ | AuthController@login |
 | GET | `/api/auth/profile` | ✅ | AuthController@profile |
 | POST | `/api/auth/logout` | ✅ | AuthController@logout |
+
+### AIAssistant Module ✅
+
+| Method | Endpoint | Auth | Controller Method |
+|--------|----------|:----:|-------------------|
+| POST | `/api/assistant/ask` | ✅ | AIAssistantController@ask |
+| GET | `/api/assistant/history` | ✅ | AIAssistantController@history |
+| GET | `/api/assistant/request/{id}` | ✅ | AIAssistantController@getRequest |
 
 ---
 
@@ -139,6 +148,7 @@ Level-2-Defense/
 | 10 | soul.md auto-updated | Progress tracked automatically after each step | 2026-08-25 |
 | 11 | NotchPay process/verify use `transaction.reference` | Merchant `PAY-xxx` is not NotchPay's payment id; using it causes `Payment Not Found` | 2026-09-01 |
 | 12 | Visa/card via NotchPay hosted checkout (`cm.card`) | Card numbers stay off our API (PCI); customer pays on `authorization_url` | 2026-09-01 |
+| 13 | NVIDIA GPT-OSS 20B for AI Assistant | Free-tier, OpenAI-compatible NIM API, 21B MoE with reasoning_effort support | 2026-09-03 |
 
 ---
 
@@ -156,12 +166,13 @@ Level-2-Defense/
 10. ✅ Attendance module implemented (QR Code integration, geolocation verification)
 11. ✅ API testing documentation created and updated (`backend/docs/api-testing.md`)
 12. ✅ Customer module implemented (CRUD, linked to users)
+13. ✅ AI Assistant module implemented (NVIDIA GPT-OSS 20B via NIM API, conversation history)
 
 ---
 
 ## Current Phase
 
-**Next**: Notification Module (SMTP)
+**Next**: Dashboard / KPIs
 
 ---
 
@@ -176,6 +187,6 @@ Level-2-Defense/
 7. ✅ Invoice Module
 8. ✅ Payment Module (NotchPay - Orange Money, MTN MoMo, Visa/card)
 9. ⬜ Notification Module (SMTP)
-10. ⬜ AI Assistant Module (Claude API)
+10. ✅ AI Assistant Module (NVIDIA GPT-OSS 20B)
 11. ⬜ Dashboard / KPIs
 12. ⬜ React Frontend

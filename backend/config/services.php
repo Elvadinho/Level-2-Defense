@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'nvidia' => [
+        'api_key' => env('NVIDIA_API_KEY'),
+        'api_url' => env('NVIDIA_API_URL', 'https://integrate.api.nvidia.com/v1/chat/completions'),
+        'model' => env('NVIDIA_MODEL', 'openai/gpt-oss-20b'),
+        'temperature' => (float) env('NVIDIA_TEMPERATURE', 0.1),
+        'reasoning_effort' => env('NVIDIA_REASONING_EFFORT', 'medium'),
+    ],
+
 ];

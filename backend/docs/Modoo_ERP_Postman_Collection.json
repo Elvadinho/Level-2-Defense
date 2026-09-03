@@ -18,6 +18,64 @@
     ],
     "item": [
         {
+            "name": "AI Assistant",
+            "item": [
+                {
+                    "name": "Ask Question",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"question\": \"List all tasks assigned to me\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/assistant/ask",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "assistant",
+                                "ask"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Request Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/assistant/request/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "assistant",
+                                "request",
+                                "1"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
             "name": "1. Authentication",
             "item": [
                 {
@@ -465,13 +523,24 @@
                     "request": {
                         "method": "GET",
                         "header": [
-                            { "key": "Accept", "value": "application/json" },
-                            { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
                         ],
                         "url": {
                             "raw": "{{base_url}}/v1/notifications",
-                            "host": [ "{{base_url}}" ],
-                            "path": [ "v1", "notifications" ]
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "notifications"
+                            ]
                         }
                     }
                 },
@@ -480,13 +549,26 @@
                     "request": {
                         "method": "GET",
                         "header": [
-                            { "key": "Accept", "value": "application/json" },
-                            { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
                         ],
                         "url": {
                             "raw": "{{base_url}}/v1/notifications/unread/count",
-                            "host": [ "{{base_url}}" ],
-                            "path": [ "v1", "notifications", "unread", "count" ]
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "notifications",
+                                "unread",
+                                "count"
+                            ]
                         }
                     }
                 },
@@ -495,13 +577,25 @@
                     "request": {
                         "method": "GET",
                         "header": [
-                            { "key": "Accept", "value": "application/json" },
-                            { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
                         ],
                         "url": {
                             "raw": "{{base_url}}/v1/notifications/1",
-                            "host": [ "{{base_url}}" ],
-                            "path": [ "v1", "notifications", "1" ]
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "notifications",
+                                "1"
+                            ]
                         }
                     }
                 },
@@ -510,13 +604,26 @@
                     "request": {
                         "method": "POST",
                         "header": [
-                            { "key": "Accept", "value": "application/json" },
-                            { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
                         ],
                         "url": {
                             "raw": "{{base_url}}/v1/notifications/1/read",
-                            "host": [ "{{base_url}}" ],
-                            "path": [ "v1", "notifications", "1", "read" ]
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "notifications",
+                                "1",
+                                "read"
+                            ]
                         }
                     }
                 },
@@ -525,13 +632,25 @@
                     "request": {
                         "method": "POST",
                         "header": [
-                            { "key": "Accept", "value": "application/json" },
-                            { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
                         ],
                         "url": {
                             "raw": "{{base_url}}/v1/notifications/read-all",
-                            "host": [ "{{base_url}}" ],
-                            "path": [ "v1", "notifications", "read-all" ]
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "notifications",
+                                "read-all"
+                            ]
                         }
                     }
                 },
@@ -540,13 +659,25 @@
                     "request": {
                         "method": "DELETE",
                         "header": [
-                            { "key": "Accept", "value": "application/json" },
-                            { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
                         ],
                         "url": {
                             "raw": "{{base_url}}/v1/notifications/1",
-                            "host": [ "{{base_url}}" ],
-                            "path": [ "v1", "notifications", "1" ]
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "notifications",
+                                "1"
+                            ]
                         }
                     }
                 },
@@ -555,13 +686,25 @@
                     "request": {
                         "method": "DELETE",
                         "header": [
-                            { "key": "Accept", "value": "application/json" },
-                            { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
                         ],
                         "url": {
                             "raw": "{{base_url}}/v1/notifications/delete-all",
-                            "host": [ "{{base_url}}" ],
-                            "path": [ "v1", "notifications", "delete-all" ]
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "notifications",
+                                "delete-all"
+                            ]
                         }
                     }
                 }
