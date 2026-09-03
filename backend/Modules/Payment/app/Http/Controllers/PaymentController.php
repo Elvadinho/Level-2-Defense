@@ -7,12 +7,15 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Payment\Http\Requests\PaymentRequest;
 use Modules\Payment\Services\PaymentService;
-use Modules\Payment\Services\NotchPayGateway;
+use Modules\Payment\Contracts\PaymentGatewayInterface;
 
 class PaymentController extends Controller
 {
-    public function __construct(private PaymentService $paymentService)
-    {
+    public function __construct(
+        private PaymentService $paymentService,
+        private ?PaymentGatewayInterface $gateway = null
+    ) {
+        $this->gateway = $gateway ?? app(PaymentGatewayInterface::class);
     }
 
     /**
@@ -78,16 +81,23 @@ class PaymentController extends Controller
     }
 
     /**
-     * Webhook endpoint — NotchPay calls this when payment status changes.
+     * Webhook endpoint — Payment gateway calls this when payment status changes.
      * This route should NOT require auth:api middleware.
      */
-    public function webhook(Request $request, NotchPayGateway $gateway): JsonResponse
+    public function webhook(Request $request, ?PaymentGatewayInterface $gateway = null): JsonResponse
     {
+        $activeGateway = $gateway ?? $this->gateway ?? app(PaymentGatewayInterface::class);
+
         // Verify the webhook signature
-        $signature = $request->header('x-notch-signature', '');
+        $signature = $request->header('x-notch-signature')
+            ?? $request->header('verif-hash')
+            ?? $request->header('x-paystack-signature')
+            ?? $request->header('stripe-signature')
+            ?? '';
+
         $payload = $request->getContent();
 
-        if (!$gateway->verifyWebhookSignature($payload, $signature)) {
+        if (!$activeGateway->verifyWebhookSignature($payload, $signature)) {
             return response()->json(['error' => 'Invalid signature'], 403);
         }
 

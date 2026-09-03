@@ -2,43 +2,45 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\User;
 use Modules\Notification\Models\Notification;
 
 class NotificationApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    private User $user;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->user = User::factory()->create([
+            'password' => bcrypt('password'),
+        ]);
+    }
+
+    private function authHeaders(User $user): array
+    {
+        $res = $this->postJson('/api/auth/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $token = $res->json('token');
+
+        return ['Authorization' => "Bearer {$token}"];
+    }
+
     public function test_get_notifications_index()
     {
-        $user = User::factory()->create(['role' => \Modules\Authentication\Enums\Role::EMPLOYEE]);
-        $token = auth('api')->login($user);
+        Notification::factory()->for($this->user)->count(5)->create();
 
-        Notification::create([
-            'user_id' => $user->id,
-            'type' => 'task_assigned',
-            'title' => 'New task',
-            'body' => 'You were assigned a task',
-            'data' => json_encode(['task_id' => 1]),
-            'channel' => 'in_app',
-        ]);
+        $response = $this->withHeaders($this->authHeaders($this->user))
+            ->getJson('/api/v1/notifications');
 
-        Notification::create([
-            'user_id' => $user->id,
-            'type' => 'project_assigned',
-            'title' => 'Project assigned',
-            'body' => 'You joined a project',
-            'data' => json_encode(['project_id' => 2]),
-            'channel' => 'email',
-        ]);
-
-        $response = $this->getJson('/api/v1/notifications', [
-            'Authorization' => 'Bearer ' . $token,
-        ]);
-
-        $response->assertStatus(200)
+        $response->assertOk()
             ->assertJsonStructure([
                 'data' => [
                     '*' => ['id', 'user_id', 'type', 'title', 'body', 'read_at', 'created_at'],
@@ -47,65 +49,92 @@ class NotificationApiTest extends TestCase
             ]);
     }
 
-    public function test_unread_count_and_mark_read()
+    public function test_get_unread_count()
     {
-        $user = User::factory()->create(['role' => \Modules\Authentication\Enums\Role::EMPLOYEE]);
-        $token = auth('api')->login($user);
+        Notification::factory()->for($this->user)->count(3)->create(['read_at' => null]);
+        Notification::factory()->for($this->user)->count(2)->create(['read_at' => now()]);
 
-        $n1 = Notification::create([
-            'user_id' => $user->id,
-            'type' => 'task_assigned',
-            'title' => 'Task',
-            'body' => 'Task body',
-            'channel' => 'in_app',
-        ]);
+        $response = $this->withHeaders($this->authHeaders($this->user))
+            ->getJson('/api/v1/notifications/unread/count');
 
-        $n2 = Notification::create([
-            'user_id' => $user->id,
-            'type' => 'task_comment',
-            'title' => 'Comment',
-            'body' => 'Comment body',
-            'channel' => 'in_app',
-            'read_at' => now(),
-        ]);
-
-        $response = $this->getJson('/api/v1/notifications/unread/count', [
-            'Authorization' => 'Bearer ' . $token,
-        ]);
-
-        $response->assertStatus(200)->assertJson(['unread_count' => 1]);
-
-        $res = $this->postJson("/api/v1/notifications/{$n1->id}/read", [], ['Authorization' => 'Bearer ' . $token]);
-        $res->assertStatus(200)->assertJsonPath('data.read_at', Notification::find($n1->id)->read_at->toJSON());
+        $response->assertOk()->assertJson(['unread_count' => 3]);
     }
 
-    public function test_destroy_and_destroy_all()
+    public function test_show_notification()
     {
-        $user = User::factory()->create(['role' => \Modules\Authentication\Enums\Role::EMPLOYEE]);
-        $token = auth('api')->login($user);
+        $notification = Notification::factory()->for($this->user)->create();
 
-        $n = Notification::create([
-            'user_id' => $user->id,
-            'type' => 'task',
-            'title' => 'T',
-            'body' => 'B',
-            'channel' => 'in_app',
-        ]);
+        $response = $this->withHeaders($this->authHeaders($this->user))
+            ->getJson("/api/v1/notifications/{$notification->id}");
 
-        $res = $this->deleteJson("/api/v1/notifications/{$n->id}", [], ['Authorization' => 'Bearer ' . $token]);
-        $res->assertStatus(204);
+        $response->assertOk()->assertJsonPath('data.id', $notification->id);
+    }
 
-        Notification::create([
-            'user_id' => $user->id,
-            'type' => 'a',
-            'title' => 't',
-            'body' => 'b',
-            'channel' => 'in_app',
-        ]);
+    public function test_show_notification_unauthorized()
+    {
+        $otherUser = User::factory()->create(['password' => bcrypt('password')]);
+        $notification = Notification::factory()->for($otherUser)->create();
 
-        $res2 = $this->deleteJson('/api/v1/notifications/delete-all', [], ['Authorization' => 'Bearer ' . $token]);
-        $res2->assertStatus(200);
+        $response = $this->withHeaders($this->authHeaders($this->user))
+            ->getJson("/api/v1/notifications/{$notification->id}");
 
-        $this->assertEquals(0, Notification::where('user_id', $user->id)->count());
+        $response->assertForbidden();
+    }
+
+    public function test_mark_as_read()
+    {
+        $notification = Notification::factory()->for($this->user)->create(['read_at' => null]);
+
+        $response = $this->withHeaders($this->authHeaders($this->user))
+            ->postJson("/api/v1/notifications/{$notification->id}/read");
+
+        $response->assertOk();
+        $this->assertNotNull($response->json('data.read_at'));
+        $this->assertNotNull($notification->refresh()->read_at);
+    }
+
+    public function test_mark_all_as_read()
+    {
+        Notification::factory()->for($this->user)->count(5)->create(['read_at' => null]);
+
+        $response = $this->withHeaders($this->authHeaders($this->user))
+            ->postJson('/api/v1/notifications/read-all');
+
+        $response->assertOk();
+
+        $unread = Notification::where('user_id', $this->user->id)->whereNull('read_at')->count();
+
+        $this->assertEquals(0, $unread);
+    }
+
+    public function test_delete_notification()
+    {
+        $notification = Notification::factory()->for($this->user)->create();
+
+        $response = $this->withHeaders($this->authHeaders($this->user))
+            ->deleteJson("/api/v1/notifications/{$notification->id}");
+
+        $response->assertNoContent();
+        $this->assertNull(Notification::find($notification->id));
+    }
+
+    public function test_delete_all_notifications()
+    {
+        Notification::factory()->for($this->user)->count(5)->create();
+
+        $response = $this->withHeaders($this->authHeaders($this->user))
+            ->deleteJson('/api/v1/notifications/delete-all');
+
+        $response->assertOk();
+
+        $count = Notification::where('user_id', $this->user->id)->count();
+        $this->assertEquals(0, $count);
+    }
+
+    public function test_unauthenticated_cannot_access()
+    {
+        $response = $this->getJson('/api/v1/notifications');
+
+        $response->assertUnauthorized();
     }
 }

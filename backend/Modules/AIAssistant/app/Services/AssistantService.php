@@ -2,9 +2,9 @@
 
 namespace Modules\AIAssistant\Services;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
+use Modules\AIAssistant\Contracts\AiProviderInterface;
 use Modules\Authentication\Enums\Role;
 use Modules\Employee\Models\Employee;
 use Modules\Employee\Models\Department;
@@ -18,19 +18,19 @@ use Modules\Quotation\Models\Quotation;
 
 class AssistantService
 {
-    private string $apiKey;
-    private string $apiUrl;
-    private string $model;
-    private float $temperature;
-    private string $reasoningEffort;
+    private AiProviderInterface $aiProvider;
 
-    public function __construct()
+    public function __construct(?AiProviderInterface $aiProvider = null)
     {
-        $this->apiKey = config('services.nvidia.api_key', '');
-        $this->apiUrl = config('services.nvidia.api_url');
-        $this->model = config('services.nvidia.model');
-        $this->temperature = (float) config('services.nvidia.temperature', 0.1);
-        $this->reasoningEffort = config('services.nvidia.reasoning_effort', 'medium');
+        $this->aiProvider = $aiProvider ?? app(AiProviderInterface::class);
+    }
+
+    /**
+     * Get the AI provider instance.
+     */
+    public function getAiProvider(): AiProviderInterface
+    {
+        return $this->aiProvider;
     }
 
     /**
@@ -271,77 +271,15 @@ class AssistantService
     }
 
     /**
-     * Call the NVIDIA NIM API (OpenAI-compatible).
+     * Call the configured AI provider via AiProviderInterface.
      *
      * @param  array  $messages  Structured messages array from buildMessages()
-     * @return array  ['success' => bool, 'content' => string|null, 'reasoning' => string|null, 'raw' => array|null, 'error' => string|null]
+     * @param  array  $options   Optional provider parameters (model, temperature, etc.)
+     * @return array  ['success' => bool, 'content' => string|null, 'reasoning' => string|null, 'raw' => array|null, 'error' => string|null, 'provider' => string|null]
      */
-    public function callLLM(array $messages): array
+    public function callLLM(array $messages, array $options = []): array
     {
-        if (!$this->apiKey) {
-            return ['success' => false, 'error' => 'NVIDIA API key not configured. Set NVIDIA_API_KEY in .env'];
-        }
-
-        try {
-            $payload = [
-                'model' => $this->model,
-                'messages' => $messages,
-                'temperature' => $this->temperature,
-                'top_p' => 0.9,
-                'max_tokens' => 2048,
-                'stream' => false,
-            ];
-
-            // GPT-OSS 20B supports reasoning_effort for chain-of-thought control
-            if ($this->reasoningEffort) {
-                $payload['reasoning_effort'] = $this->reasoningEffort;
-            }
-
-            $response = Http::timeout(120)
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'Authorization' => "Bearer {$this->apiKey}",
-                ])
-                ->post($this->apiUrl, $payload);
-
-            if (!$response->successful()) {
-                Log::error('NVIDIA NIM API error', [
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                    'model' => $this->model,
-                ]);
-
-                return [
-                    'success' => false,
-                    'error' => "NVIDIA API returned HTTP {$response->status()}",
-                ];
-            }
-
-            $data = $response->json();
-            $content = $data['choices'][0]['message']['content'] ?? null;
-
-            if (!$content) {
-                return ['success' => false, 'error' => 'No content in API response'];
-            }
-
-            // GPT-OSS 20B may return reasoning in a separate field
-            $reasoning = $data['choices'][0]['message']['reasoning_content'] ?? null;
-
-            return [
-                'success' => true,
-                'content' => trim($content),
-                'reasoning' => $reasoning,
-                'raw' => $data,
-                'usage' => $data['usage'] ?? null,
-            ];
-
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            Log::error('NVIDIA API connection timeout', ['error' => $e->getMessage()]);
-            return ['success' => false, 'error' => 'API connection timed out — try again'];
-        } catch (\Exception $e) {
-            Log::error('NVIDIA API call failed', ['error' => $e->getMessage()]);
-            return ['success' => false, 'error' => $e->getMessage()];
-        }
+        return $this->aiProvider->chat($messages, $options);
     }
 
     /**

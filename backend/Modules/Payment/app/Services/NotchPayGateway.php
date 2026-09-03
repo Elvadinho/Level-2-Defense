@@ -4,16 +4,22 @@ namespace Modules\Payment\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Modules\Payment\Contracts\PaymentGatewayInterface;
 
-class NotchPayGateway
+class NotchPayGateway implements PaymentGatewayInterface
 {
     private string $baseUrl;
     private string $publicKey;
 
-    public function __construct()
+    public function __construct(array $config = [])
     {
-        $this->baseUrl = config('notchpay.base_url');
-        $this->publicKey = config('notchpay.public_key');
+        $this->baseUrl = (string) ($config['base_url'] ?? config('notchpay.base_url') ?? 'https://api.notchpay.co');
+        $this->publicKey = (string) ($config['public_key'] ?? config('notchpay.public_key') ?? '');
+    }
+
+    public function getGatewayName(): string
+    {
+        return 'notchpay';
     }
 
     /**

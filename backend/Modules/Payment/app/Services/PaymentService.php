@@ -4,14 +4,35 @@ namespace Modules\Payment\Services;
 
 use Modules\Payment\Models\Payment;
 use Modules\Invoice\Models\Invoice;
+use Modules\Payment\Contracts\PaymentGatewayInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PaymentService
 {
-    public function __construct(private NotchPayGateway $gateway)
+    private PaymentGatewayInterface $gateway;
+
+    public function __construct(?PaymentGatewayInterface $gateway = null)
     {
+        $this->gateway = $gateway ?? app(PaymentGatewayInterface::class);
+    }
+
+    /**
+     * Get the active payment gateway instance.
+     */
+    public function getGateway(): PaymentGatewayInterface
+    {
+        return $this->gateway;
+    }
+
+    /**
+     * Set the active payment gateway instance.
+     */
+    public function setGateway(PaymentGatewayInterface $gateway): self
+    {
+        $this->gateway = $gateway;
+        return $this;
     }
 
     public function getAll(): Collection

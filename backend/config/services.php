@@ -43,4 +43,35 @@ return [
         'reasoning_effort' => env('NVIDIA_REASONING_EFFORT', 'medium'),
     ],
 
+    'huggingface' => [
+        'api_key' => env('HUGGINGFACE_API_KEY'),
+        'api_url' => env('HUGGINGFACE_API_URL', 'https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct/v1/chat/completions'),
+        'model' => env('HUGGINGFACE_MODEL', 'meta-llama/Meta-Llama-3-8B-Instruct'),
+        'temperature' => (float) env('HUGGINGFACE_TEMPERATURE', 0.1),
+    ],
+
+    'local_llama' => [
+        'api_key' => env('LOCAL_LLAMA_API_KEY', 'ollama'),
+        'api_url' => env('LOCAL_LLAMA_API_URL', 'http://localhost:11434/v1/chat/completions'),
+        'model' => env('LOCAL_LLAMA_MODEL', 'llama3:latest'),
+        'temperature' => (float) env('LOCAL_LLAMA_TEMPERATURE', 0.1),
+    ],
+
+    'ai_default' => env('AI_DEFAULT_PROVIDER', 'nvidia'),
+
+    'flutterwave' => [
+        'public_key' => env('FLUTTERWAVE_PUBLIC_KEY', ''),
+        'secret_key' => env('FLUTTERWAVE_SECRET_KEY', ''),
+        'encryption_key' => env('FLUTTERWAVE_ENCRYPTION_KEY', ''),
+        'secret_hash' => env('FLUTTERWAVE_SECRET_HASH', ''),
+        'base_url' => env('FLUTTERWAVE_BASE_URL', 'https://api.flutterwave.com/v3'),
+    ],
+
+    'stripe' => [
+        'public_key' => env('STRIPE_PUBLIC_KEY', ''),
+        'secret_key' => env('STRIPE_SECRET_KEY', ''),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET', ''),
+        'base_url' => env('STRIPE_BASE_URL', 'https://api.stripe.com'),
+    ],
+
 ];
