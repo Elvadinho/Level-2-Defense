@@ -141,6 +141,7 @@
       <path value="$PROJECT_DIR$/backend/vendor/laravel/sanctum" />
       <path value="$PROJECT_DIR$/backend/vendor/laravel/tinker" />
       <path value="$PROJECT_DIR$/backend/vendor/laravel/pail" />
+      <path value="$PROJECT_DIR$/backend/vendor/_laravel_idea" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.3" />
