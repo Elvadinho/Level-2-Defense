@@ -24,7 +24,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem(TOKEN_STORAGE_KEY);
-    if (token && config.headers) {
+    if (token && !token.startsWith('demo_token_') && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -40,11 +40,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<{ message?: string; errors?: Record<string, string[]> }>) => {
-    // If receiving 401 Unauthorized, clean invalid tokens
+    // If receiving 401 Unauthorized from backend on protected endpoints, clean invalid tokens
     if (error.response?.status === 401) {
-      localStorage.removeItem(TOKEN_STORAGE_KEY);
-      localStorage.removeItem(USER_STORAGE_KEY);
-      // Optional: emit event or let auth context state react
+      const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+      if (storedToken && !storedToken.startsWith('demo_token_')) {
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(USER_STORAGE_KEY);
+      }
     }
 
     // Extract the most informative error message from Laravel response

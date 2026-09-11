@@ -4,45 +4,46 @@ import { useAuth } from '../../context/AuthContext';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { Alert } from '../../components/common/Alert';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react';
+import { UserRole } from '../../types/auth';
 
 /**
  * LoginPage Component
- * Professional, clear, and concise authentication interface
- * Implemented using the Vichy color palette (#05AD98, #BBBFBF, #878787, #FFFFFF)
+ * Professional, clean authentication screen consuming backend JWT endpoints
+ * with full error handling, input validation, and instant demo access.
  */
 export const LoginPage: React.FC = () => {
-  const { login, isAuthenticated } = useAuth();
+  const { login, loginAsDemo, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Form State
+  // Form input states
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Validation State
+  // Field validation error states
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
-  // Target route after successful login
+  // Destination route after successful authentication
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
 
-  // Redirect if already authenticated
+  // Redirect if session is already active
   React.useEffect(() => {
     if (isAuthenticated) {
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, from]);
 
-  // Form validation handler
+  // Client-side form validation
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
 
     if (!email.trim()) {
       newErrors.email = 'Email address is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
+    } else if (!/\S+@\S+\.\S+/.test(email.trim())) {
       newErrors.email = 'Please enter a valid email address';
     }
 
@@ -56,7 +57,7 @@ export const LoginPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Submit handler calling the backend login endpoint
+  // Submit handler calling backend /api/auth/login
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -67,38 +68,56 @@ export const LoginPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await login({ email, password });
+      await login({ email: email.trim(), password });
       navigate(from, { replace: true });
-    } catch (err: unknown) {
-      const error = err as Error;
-      setErrorMessage(error.message || 'Failed to sign in. Please verify your credentials.');
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error
+          ? err.message
+          : 'Invalid credentials. Please verify your email and password.'
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Handle instant demo mode login
+  const handleDemoLogin = (role: UserRole) => {
+    setErrorMessage(null);
+    loginAsDemo(role);
+    navigate(from, { replace: true });
+  };
+
+  // Pre-fill form inputs for testing
+  const handleFillDemo = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword('password');
+    setErrors({});
+    setErrorMessage(null);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-100/70 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Brand Header */}
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#05AD98] to-[#049381] shadow-lg shadow-[#05AD98]/20 mb-4">
-            <span className="text-white text-2xl font-bold tracking-tight">M</span>
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#05AD98] text-white font-bold text-xl shadow-sm mb-3">
+            M
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
             Sign in to <span className="text-[#05AD98]">Modoo ERP</span>
           </h1>
-          <p className="mt-2 text-xs sm:text-sm text-[#878787]">
-            Enterprise management platform for operations, HR & finance
+          <p className="mt-1 text-xs text-slate-500">
+            Enterprise management workspace for operations, HR & finance
           </p>
         </div>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
-        <div className="bg-white py-8 px-6 sm:px-10 shadow-card rounded-2xl border border-[#BBBFBF]/30">
-          {/* Error Banner */}
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
+        <div className="bg-white py-8 px-6 sm:px-8 shadow-sm rounded-xl border border-slate-200">
+          {/* Server / Validation Error Banner */}
           {errorMessage && (
-            <div className="mb-6">
+            <div className="mb-5">
               <Alert
                 type="error"
                 message={errorMessage}
@@ -108,14 +127,11 @@ export const LoginPage: React.FC = () => {
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-            {/* Email Field */}
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <Input
               label="Email Address"
               type="email"
-              autoComplete="email"
-              required
-              placeholder="you@company.com"
+              placeholder="e.g. admin@modoo.cm"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -123,86 +139,117 @@ export const LoginPage: React.FC = () => {
               }}
               error={errors.email}
               leftIcon={<Mail className="w-4 h-4" />}
-            />
-
-            {/* Password Field */}
-            <Input
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="current-password"
               required
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
-              }}
-              error={errors.password}
-              leftIcon={<Lock className="w-4 h-4" />}
-              rightIcon={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-[#878787] hover:text-slate-800 focus:outline-none cursor-pointer"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              }
+              autoComplete="email"
+              autoFocus
             />
 
-            {/* Remember Me & Help Links */}
-            <div className="flex items-center justify-between text-xs">
-              <label className="flex items-center text-slate-600 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="rounded border-[#BBBFBF] text-[#05AD98] focus:ring-[#05AD98] w-4 h-4"
-                />
-                <span className="ml-2">Remember this device</span>
-              </label>
-
-              <span className="text-[#878787] hover:text-[#05AD98] transition-colors cursor-pointer">
-                Forgot password?
-              </span>
+            <div className="relative">
+              <Input
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                }}
+                error={errors.password}
+                leftIcon={<Lock className="w-4 h-4" />}
+                rightIcon={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-slate-400 hover:text-slate-600 focus:outline-none"
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                }
+                required
+                autoComplete="current-password"
+              />
             </div>
 
-            {/* Submit Button */}
             <Button
               type="submit"
               variant="primary"
               size="lg"
-              className="w-full font-semibold shadow-md hover:shadow-lg transition-all"
               isLoading={isLoading}
               rightIcon={<ArrowRight className="w-4 h-4" />}
+              className="w-full justify-center shadow-xs mt-2"
             >
-              Sign In
+              Sign In to Workspace
             </Button>
           </form>
 
-          {/* Link to Signup */}
-          <div className="mt-6 pt-6 border-t border-slate-100 text-center">
-            <p className="text-xs text-[#878787]">
-              Don't have an account yet?{' '}
+          {/* Instant Demo Accounts & Quick Fill */}
+          <div className="mt-6 pt-5 border-t border-slate-100 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-[#05AD98]" /> Quick Demo Access
+              </span>
+              <span className="text-[10px] text-slate-400">Click to preview role</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-1.5 text-xs">
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('admin')}
+                className="p-2 rounded-lg bg-slate-50 hover:bg-[#05AD98]/10 hover:text-[#05AD98] hover:border-[#05AD98]/30 text-slate-700 text-left border border-slate-200 transition-colors flex items-center justify-between cursor-pointer"
+              >
+                <span>👑 <strong>Admin</strong></span>
+                <span className="text-[10px] text-slate-400 font-normal">Full Access</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('hr_manager')}
+                className="p-2 rounded-lg bg-slate-50 hover:bg-[#05AD98]/10 hover:text-[#05AD98] hover:border-[#05AD98]/30 text-slate-700 text-left border border-slate-200 transition-colors flex items-center justify-between cursor-pointer"
+              >
+                <span>👥 <strong>HR Manager</strong></span>
+                <span className="text-[10px] text-slate-400 font-normal">Staff & Clock</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('project_manager')}
+                className="p-2 rounded-lg bg-slate-50 hover:bg-[#05AD98]/10 hover:text-[#05AD98] hover:border-[#05AD98]/30 text-slate-700 text-left border border-slate-200 transition-colors flex items-center justify-between cursor-pointer"
+              >
+                <span>📊 <strong>PM Lead</strong></span>
+                <span className="text-[10px] text-slate-400 font-normal">Kanban & Tasks</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('accountant')}
+                className="p-2 rounded-lg bg-slate-50 hover:bg-[#05AD98]/10 hover:text-[#05AD98] hover:border-[#05AD98]/30 text-slate-700 text-left border border-slate-200 transition-colors flex items-center justify-between cursor-pointer"
+              >
+                <span>💼 <strong>Accountant</strong></span>
+                <span className="text-[10px] text-slate-400 font-normal">Billing & Invoices</span>
+              </button>
+            </div>
+
+            <div className="pt-1 text-center">
+              <button
+                type="button"
+                onClick={() => handleFillDemo('test@example.com')}
+                className="text-[11px] text-slate-500 hover:text-[#05AD98] underline decoration-slate-300 cursor-pointer"
+              >
+                Or pre-fill test credentials (test@example.com / password)
+              </button>
+            </div>
+          </div>
+
+          {/* Registration Navigation Link */}
+          <div className="mt-5 text-center">
+            <p className="text-xs text-slate-500">
+              Don't have an account?{' '}
               <Link
                 to="/register"
-                className="font-semibold text-[#05AD98] hover:text-[#037667] transition-colors hover:underline"
+                className="font-semibold text-[#05AD98] hover:text-[#049381] transition-colors"
               >
-                Create an account
+                Sign up here
               </Link>
             </p>
-          </div>
-        </div>
-
-        {/* Security & Reliability Badge */}
-        <div className="mt-6 flex items-center justify-center gap-4 text-xs text-[#878787]">
-          <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-[#05AD98]" />
-            <span>JWT Auth</span>
-          </div>
-          <span>•</span>
-          <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-[#05AD98]" />
-            <span>Role-Based Permissions</span>
           </div>
         </div>
       </div>

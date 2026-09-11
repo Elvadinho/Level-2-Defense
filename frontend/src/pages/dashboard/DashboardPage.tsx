@@ -13,21 +13,21 @@ import {
   Clock,
   Sparkles,
   ArrowUpRight,
-  ShieldCheck,
   TrendingUp,
   Activity,
   CheckCircle2,
+  Building2,
 } from 'lucide-react';
 
 /**
  * DashboardPage Component
- * Role-aware operational command center built with the Vichy color palette
+ * Odoo-inspired clean operational command center and modular app launcher
  */
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Allowed modules for this user
+  // Accessible modules for this role
   const accessibleModules = getNavItemsForRole(user?.role).filter((m) => m.id !== 'dashboard');
 
   // KPI Metrics generation tailored to user role
@@ -35,46 +35,46 @@ export const DashboardPage: React.FC = () => {
     switch (user?.role) {
       case 'admin':
         return [
-          { title: 'Total Employees', value: '28', change: '+3 this month', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { title: 'Active Projects', value: '12', change: '4 near deadline', icon: FolderKanban, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
-          { title: 'Pending Invoices', value: '$45,280', change: '8 unpaid', icon: Receipt, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { title: 'AI Assistant Queries', value: '154', change: '99.4% resolved', icon: Sparkles, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { title: 'Total Employees', value: '6', change: '5 Departments active', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { title: 'Active Projects', value: '3', change: '17 tasks total', icon: FolderKanban, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
+          { title: 'Total Invoiced', value: '23,700,000 XAF', change: '14,500,000 XAF collected', icon: Receipt, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { title: 'AI Assistant', value: 'Ready', change: '100% operational', icon: Sparkles, color: 'text-purple-600', bg: 'bg-purple-50' },
         ];
       case 'hr_manager':
         return [
-          { title: 'Active Staff', value: '28', change: '100% active', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { title: "Today's Attendance", value: '92.8%', change: '26 checked in', icon: Clock, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
-          { title: 'Departments', value: '5', change: 'Engineering, HR, Sales...', icon: FolderKanban, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { title: 'Leave Requests', value: '2', change: 'Pending review', icon: Activity, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { title: 'Total Staff', value: '6', change: '100% active roster', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { title: "Today's Attendance", value: '100%', change: '5 checked in on site', icon: Clock, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
+          { title: 'Departments', value: '5', change: 'Executive, Engineering, HR...', icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { title: 'Leave Requests', value: '0', change: 'All schedules updated', icon: Activity, color: 'text-amber-600', bg: 'bg-amber-50' },
         ];
       case 'project_manager':
         return [
-          { title: 'Active Projects', value: '6', change: '2 on schedule', icon: FolderKanban, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
-          { title: 'Assigned Tasks', value: '43', change: '18 in progress', icon: CheckSquare, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { title: 'Team Members', value: '14', change: '3 teams', icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
-          { title: 'Milestone Velocity', value: '88%', change: '+5% vs last sprint', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { title: 'Active Projects', value: '3', change: 'All on schedule', icon: FolderKanban, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
+          { title: 'Active Tasks', value: '8', change: '3 in progress, 1 review', icon: CheckSquare, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { title: 'Team Members', value: '6', change: '3 cross-functional teams', icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { title: 'Milestone Completion', value: '85%', change: '+12% this sprint', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
         ];
       case 'accountant':
         return [
-          { title: 'Total Revenue', value: '$124,500', change: '+12% QoQ', icon: TrendingUp, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
-          { title: 'Unpaid Invoices', value: '8', change: '$18,400 pending', icon: Receipt, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { title: 'NotchPay Volume', value: '$52,100', change: 'Orange & MTN MoMo', icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { title: 'Active Quotations', value: '14', change: '5 awaiting client approval', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { title: 'Total Revenue', value: '17,900,000 XAF', change: 'Settled this quarter', icon: TrendingUp, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
+          { title: 'Unpaid Invoices', value: '2', change: '9,200,000 XAF pending', icon: Receipt, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { title: 'Settled Payments', value: '17,900,000 XAF', change: 'Orange & MTN Mobile Money', icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { title: 'Active Quotations', value: '3', change: '1 Approved, 1 Sent, 1 Draft', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
         ];
       case 'customer':
         return [
-          { title: 'My Invoices', value: '3', change: '1 pending payment', icon: Receipt, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { title: 'My Invoices', value: '3', change: '1 pending settlement', icon: Receipt, color: 'text-amber-600', bg: 'bg-amber-50' },
           { title: 'Active Quotations', value: '2', change: 'Awaiting your review', icon: CheckSquare, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
-          { title: 'Completed Payments', value: '$8,450', change: 'via NotchPay', icon: CreditCard, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { title: 'Support Inquiries', value: '0', change: 'All resolved', icon: Sparkles, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { title: 'Completed Payments', value: '17,900,000 XAF', change: 'Mobile Money / Card', icon: CreditCard, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { title: 'AI Assistant', value: 'Active', change: '24/7 Account support', icon: Sparkles, color: 'text-blue-600', bg: 'bg-blue-50' },
         ];
       case 'employee':
       default:
         return [
-          { title: 'My Open Tasks', value: '7', change: '2 due today', icon: CheckSquare, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
-          { title: 'Attendance Status', value: 'Present', change: 'Checked in at 08:30', icon: Clock, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { title: 'Completed This Week', value: '12', change: '94% on time', icon: CheckCircle2, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { title: 'AI Assistant Prompts', value: '18', change: 'Code & workflow helper', icon: Sparkles, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { title: 'My Open Tasks', value: '4', change: '2 in progress', icon: CheckSquare, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
+          { title: 'Attendance Status', value: 'Present', change: 'Clocked in at 08:02', icon: Clock, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { title: 'Assigned Projects', value: '2', change: 'Enterprise Core, Mobile App', icon: FolderKanban, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { title: 'AI Assistant Prompts', value: 'Active', change: 'Daily assistant available', icon: Sparkles, color: 'text-purple-600', bg: 'bg-purple-50' },
         ];
     }
   };
@@ -82,13 +82,13 @@ export const DashboardPage: React.FC = () => {
   const kpis = getKpiCards();
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-5">
       {/* Top Banner: Greeting & Role Overview */}
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#BBBFBF]/30 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-1.5">
             <Badge role={user?.role} size="md" />
-            <span className="text-xs text-[#878787] font-medium">
+            <span className="text-xs text-slate-400 font-medium">
               {new Date().toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
@@ -98,142 +98,99 @@ export const DashboardPage: React.FC = () => {
             </span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
             Welcome back, <span className="text-[#05AD98]">{user?.name}</span>
           </h1>
 
-          <p className="mt-1 text-sm text-[#878787] max-w-2xl">
-            Here is your daily operational briefing. All active modules, services, and AI assistance
-            are running with high availability.
+          <p className="mt-1 text-xs text-slate-500 max-w-2xl">
+            Modoo ERP operational workspace. All modules, database records, and business workflows are running smoothly.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="md"
-            onClick={() => navigate('/assistant')}
-            leftIcon={<Sparkles className="w-4 h-4 text-[#05AD98]" />}
-          >
-            Ask AI Assistant
-          </Button>
+        <div className="flex items-center gap-2">
           <Button
             variant="primary"
-            size="md"
+            size="sm"
             onClick={() => navigate('/tasks')}
+            leftIcon={<CheckSquare className="w-3.5 h-3.5" />}
           >
-            View Tasks
+            Open Tasks Board
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/assistant')}
+            leftIcon={<Sparkles className="w-3.5 h-3.5 text-[#05AD98]" />}
+          >
+            AI Assistant
           </Button>
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {kpis.map((kpi, index) => {
+      {/* KPI Metric Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpis.map((kpi, idx) => {
           const Icon = kpi.icon;
           return (
             <div
-              key={index}
-              className="bg-white rounded-2xl p-5 border border-[#BBBFBF]/30 shadow-subtle hover:shadow-card transition-all"
+              key={idx}
+              className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs hover:shadow-xs hover:border-[#05AD98]/50 transition-all flex flex-col justify-between space-y-3"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#878787]">
-                  {kpi.title}
-                </span>
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${kpi.bg}`}>
-                  <Icon className={`w-5 h-5 ${kpi.color}`} />
+                <span className="text-xs font-semibold text-slate-500">{kpi.title}</span>
+                <div className={`p-2 rounded-lg ${kpi.bg} ${kpi.color}`}>
+                  <Icon className="w-4 h-4" />
                 </div>
               </div>
 
-              <div className="mt-3">
-                <p className="text-2xl font-bold text-slate-900 tracking-tight">{kpi.value}</p>
-                <p className="mt-1 text-xs text-[#878787] flex items-center gap-1 font-medium">
-                  <span className="text-[#05AD98]">●</span> {kpi.change}
-                </p>
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight">{kpi.value}</h3>
+                <p className="text-[11px] text-slate-500 font-medium mt-0.5">{kpi.change}</p>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Accessible Modules Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
+      {/* Odoo-style App Launcher Modules Grid */}
+      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Your Active Modules</h2>
-            <p className="text-xs text-[#878787]">
-              Modules enabled for your <strong className="text-slate-700">{user?.role}</strong> role
-            </p>
+            <h2 className="text-sm font-bold text-slate-900">ERP Applications & Workspaces</h2>
+            <p className="text-xs text-slate-400">Launch business management modules assigned to your role</p>
           </div>
-          <span className="text-xs text-[#878787] bg-slate-100 px-2.5 py-1 rounded-full font-medium">
+          <span className="text-xs font-semibold text-[#05AD98]">
             {accessibleModules.length} Modules Available
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {accessibleModules.map((module) => {
-            const Icon = module.icon;
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+          {accessibleModules.map((item) => {
+            const Icon = item.icon;
             return (
               <div
-                key={module.id}
-                onClick={() => navigate(module.path)}
-                className="group bg-white rounded-2xl p-5 border border-[#BBBFBF]/30 shadow-subtle hover:shadow-card hover:border-[#05AD98]/50 transition-all cursor-pointer flex flex-col justify-between"
+                key={item.id}
+                onClick={() => navigate(item.path)}
+                className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:border-[#05AD98]/60 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between space-y-3"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#05AD98]/10 text-[#05AD98] flex items-center justify-center group-hover:bg-[#05AD98] group-hover:text-white transition-all shadow-sm">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <ArrowUpRight className="w-4 h-4 text-[#878787] group-hover:text-[#05AD98] transition-colors" />
+                <div className="flex items-start justify-between">
+                  <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#05AD98] group-hover:bg-[#05AD98] group-hover:text-white group-hover:border-[#05AD98] transition-all shadow-2xs">
+                    <Icon className="w-5 h-5" />
                   </div>
-
-                  <h3 className="font-bold text-slate-900 group-hover:text-[#05AD98] transition-colors">
-                    {module.label}
-                  </h3>
-                  <p className="mt-1 text-xs text-[#878787] leading-relaxed">
-                    {module.description}
-                  </p>
+                  <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-[#05AD98] transition-colors" />
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-[#878787]">
-                  <span className="font-medium">Open Module</span>
-                  <span className="text-[#05AD98] font-semibold">Access Ready →</span>
+                <div>
+                  <h3 className="font-bold text-xs text-slate-900 group-hover:text-[#05AD98] transition-colors">
+                    {item.label}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                    {item.description || `Manage ${item.label.toLowerCase()} workflows`}
+                  </p>
                 </div>
               </div>
             );
           })}
-        </div>
-      </div>
-
-      {/* Backend & AI Integration Status */}
-      <div className="bg-white rounded-2xl p-5 border border-[#BBBFBF]/30 shadow-subtle">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-[#878787] mb-3">
-          Architecture & System Integration
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200/60">
-            <ShieldCheck className="w-5 h-5 text-[#05AD98] shrink-0" />
-            <div>
-              <p className="font-semibold text-slate-800">Laravel 13 REST API</p>
-              <p className="text-[#878787] text-[11px]">Sanctum Auth & SOLID Controllers</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200/60">
-            <Sparkles className="w-5 h-5 text-[#05AD98] shrink-0" />
-            <div>
-              <p className="font-semibold text-slate-800">NVIDIA GPT-OSS 20B</p>
-              <p className="text-[#878787] text-[11px]">NIM API MoE AI Assistant</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200/60">
-            <CreditCard className="w-5 h-5 text-[#05AD98] shrink-0" />
-            <div>
-              <p className="font-semibold text-slate-800">NotchPay Multi-Gateway</p>
-              <p className="text-[#878787] text-[11px]">Orange Money, MTN MoMo & Card</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

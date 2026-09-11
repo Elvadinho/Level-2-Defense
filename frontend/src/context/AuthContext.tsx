@@ -5,6 +5,60 @@ import { TOKEN_STORAGE_KEY, USER_STORAGE_KEY } from '../services/api';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+export const DEMO_TOKEN_PREFIX = 'demo_token_';
+
+const DEMO_USERS: Record<UserRole, User> = {
+  admin: {
+    id: 1,
+    name: 'Marc Ekwalla (Admin)',
+    email: 'admin@modoo.cm',
+    role: 'admin',
+    created_at: '2026-01-15T08:00:00Z',
+  },
+  hr_manager: {
+    id: 2,
+    name: 'Therese Nguemo (HR)',
+    email: 'hr@modoo.cm',
+    role: 'hr_manager',
+    created_at: '2026-03-01T08:00:00Z',
+  },
+  project_manager: {
+    id: 3,
+    name: 'Alexandre Kamdem (PM)',
+    email: 'pm@modoo.cm',
+    role: 'project_manager',
+    created_at: '2026-02-15T08:00:00Z',
+  },
+  accountant: {
+    id: 5,
+    name: 'Carine Eyenga (Accountant)',
+    email: 'accountant@modoo.cm',
+    role: 'accountant',
+    created_at: '2026-04-10T08:00:00Z',
+  },
+  employee: {
+    id: 4,
+    name: 'David Mballa (Employee)',
+    email: 'david@modoo.cm',
+    role: 'employee',
+    created_at: '2026-06-01T08:00:00Z',
+  },
+  customer: {
+    id: 10,
+    name: 'TechCorp Cameroon (Customer)',
+    email: 'procurement@techcorp.cm',
+    role: 'customer',
+    created_at: '2026-01-20T09:00:00Z',
+  },
+  intern: {
+    id: 11,
+    name: 'Junior Fomba (Intern)',
+    email: 'intern@modoo.cm',
+    role: 'intern',
+    created_at: '2026-08-01T08:00:00Z',
+  },
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem(USER_STORAGE_KEY);
@@ -27,13 +81,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initAuth = async () => {
       const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+      const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+
       if (storedToken) {
+        // If demo session, restore demo profile without calling backend
+        if (storedToken.startsWith(DEMO_TOKEN_PREFIX)) {
+          if (storedUser) {
+            try {
+              setUser(JSON.parse(storedUser));
+              setToken(storedToken);
+            } catch {
+              setUser(null);
+              setToken(null);
+            }
+          }
+          setIsLoading(false);
+          return;
+        }
+
         try {
           const freshUser = await authService.getProfile();
           setUser(freshUser);
+          setToken(storedToken);
           localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(freshUser));
         } catch {
-          // Token expired or invalid
+          // Token expired or invalid on backend
           setUser(null);
           setToken(null);
           localStorage.removeItem(TOKEN_STORAGE_KEY);
@@ -47,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   /**
-   * Login handler
+   * Login handler - connects to backend API
    */
   const login = useCallback(async (credentials: LoginCredentials) => {
     setIsLoading(true);
@@ -63,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   /**
-   * Registration handler
+   * Registration handler - connects to backend API
    */
   const register = useCallback(async (data: RegisterData) => {
     setIsLoading(true);
@@ -79,12 +151,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   /**
+   * Quick Demo Mode Login
+   */
+  const loginAsDemo = useCallback((role: UserRole) => {
+    const demoUser = DEMO_USERS[role] || DEMO_USERS.admin;
+    const demoToken = `${DEMO_TOKEN_PREFIX}${role}`;
+    setToken(demoToken);
+    setUser(demoUser);
+    localStorage.setItem(TOKEN_STORAGE_KEY, demoToken);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(demoUser));
+  }, []);
+
+  /**
    * Logout handler
    */
   const logout = useCallback(async () => {
     setIsLoading(true);
     try {
-      await authService.logout();
+      const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+      if (storedToken && !storedToken.startsWith(DEMO_TOKEN_PREFIX)) {
+        await authService.logout();
+      }
     } finally {
       setUser(null);
       setToken(null);
@@ -117,6 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         register,
+        loginAsDemo,
         logout,
         hasRole,
       }}

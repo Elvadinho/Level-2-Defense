@@ -30,7 +30,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     label: 'Employees',
     path: '/employees',
     icon: Users,
-    roles: ['admin', 'hr_manager'],
+    roles: ['admin', 'hr_manager', 'project_manager'],
     description: 'Staff profiles and departmental directory',
   },
   {
@@ -46,7 +46,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     label: 'Projects',
     path: '/projects',
     icon: FolderKanban,
-    roles: ['admin', 'project_manager'],
+    roles: ['admin', 'project_manager', 'hr_manager'],
     description: 'Project planning, deadlines & team members',
   },
   {
@@ -54,7 +54,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     label: 'Tasks',
     path: '/tasks',
     icon: CheckSquare,
-    roles: ['admin', 'project_manager', 'employee'],
+    roles: ['admin', 'project_manager', 'employee', 'hr_manager'],
     description: 'Task assignments, boards & activity comments',
   },
   {
@@ -87,7 +87,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     path: '/payments',
     icon: CreditCard,
     roles: ['admin', 'accountant', 'customer'],
-    description: 'NotchPay, Mobile Money & Card processing',
+    description: 'Mobile Money, Card & Bank transfers',
   },
   {
     id: 'ai-assistant',
@@ -95,7 +95,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     path: '/assistant',
     icon: Bot,
     roles: ['admin', 'hr_manager', 'project_manager', 'employee', 'accountant'],
-    description: 'NVIDIA GPT-OSS 20B intelligent assistant',
+    description: 'Intelligent business assistant',
   },
 ];
 

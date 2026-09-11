@@ -19,6 +19,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   employee: 'Employee',
   accountant: 'Accountant',
   customer: 'Customer',
+  intern: 'Intern',
 };
 
 /**
@@ -53,7 +54,7 @@ export const Badge: React.FC<BadgeProps> = ({
         break;
       case 'employee':
       default:
-        variantClass = 'bg-slate-100 text-slate-700 border-[#BBBFBF]/50';
+        variantClass = 'bg-slate-100 text-slate-700 border-slate-300';
         break;
     }
   } else if (variant) {

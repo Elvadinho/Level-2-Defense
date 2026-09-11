@@ -40,6 +40,15 @@ export const Alert: React.FC<AlertProps> = ({
 
   const config = configs[type];
 
+  React.useEffect(() => {
+    if (onClose) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [onClose]);
+
   return (
     <div
       className={`flex items-start gap-3 p-3.5 rounded-lg border text-sm transition-all animate-fadeIn ${config.bg} ${className}`}

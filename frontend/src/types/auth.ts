@@ -9,7 +9,8 @@ export type UserRole =
   | 'project_manager'
   | 'employee'
   | 'accountant'
-  | 'customer';
+  | 'customer'
+  | 'intern';
 
 // User model structure returned from backend
 export interface User {
@@ -57,6 +58,7 @@ export interface AuthContextType {
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
+  loginAsDemo: (role: UserRole) => void;
   logout: () => Promise<void>;
   hasRole: (roles: UserRole | UserRole[]) => boolean;
 }
