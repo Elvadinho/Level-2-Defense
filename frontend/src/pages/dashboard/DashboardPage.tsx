@@ -1,85 +1,38 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getNavItemsForRole } from '../../config/navigation';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
-import {
-  Users,
-  FolderKanban,
-  CheckSquare,
-  Receipt,
-  CreditCard,
-  Clock,
-  Sparkles,
-  ArrowUpRight,
-  TrendingUp,
-  Activity,
-  CheckCircle2,
-  Building2,
-} from 'lucide-react';
+import { buildRoleDashboard, QUICK_ACTION_MODULES } from './dashboardData';
+import { ArrowUpRight, ArrowRight, Inbox } from 'lucide-react';
 
 /**
  * DashboardPage Component
- * Odoo-inspired clean operational command center and modular app launcher
+ * Odoo-inspired command center rendering only the metrics, records and shortcuts
+ * that the authenticated role is allowed to access.
  */
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Accessible modules for this role
-  const accessibleModules = getNavItemsForRole(user?.role).filter((m) => m.id !== 'dashboard');
+  // Modules granted to this role (single source of truth for links and shortcuts)
+  const allowedModules = useMemo(() => getNavItemsForRole(user?.role), [user?.role]);
+  const accessibleModules = allowedModules.filter((m) => m.id !== 'dashboard');
 
-  // KPI Metrics generation tailored to user role
-  const getKpiCards = () => {
-    switch (user?.role) {
-      case 'admin':
-        return [
-          { title: 'Total Employees', value: '6', change: '5 Departments active', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { title: 'Active Projects', value: '3', change: '17 tasks total', icon: FolderKanban, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
-          { title: 'Total Invoiced', value: '23,700,000 XAF', change: '14,500,000 XAF collected', icon: Receipt, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { title: 'AI Assistant', value: 'Ready', change: '100% operational', icon: Sparkles, color: 'text-purple-600', bg: 'bg-purple-50' },
-        ];
-      case 'hr_manager':
-        return [
-          { title: 'Total Staff', value: '6', change: '100% active roster', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { title: "Today's Attendance", value: '100%', change: '5 checked in on site', icon: Clock, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
-          { title: 'Departments', value: '5', change: 'Executive, Engineering, HR...', icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { title: 'Leave Requests', value: '0', change: 'All schedules updated', icon: Activity, color: 'text-amber-600', bg: 'bg-amber-50' },
-        ];
-      case 'project_manager':
-        return [
-          { title: 'Active Projects', value: '3', change: 'All on schedule', icon: FolderKanban, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
-          { title: 'Active Tasks', value: '8', change: '3 in progress, 1 review', icon: CheckSquare, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { title: 'Team Members', value: '6', change: '3 cross-functional teams', icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
-          { title: 'Milestone Completion', value: '85%', change: '+12% this sprint', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-        ];
-      case 'accountant':
-        return [
-          { title: 'Total Revenue', value: '17,900,000 XAF', change: 'Settled this quarter', icon: TrendingUp, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
-          { title: 'Unpaid Invoices', value: '2', change: '9,200,000 XAF pending', icon: Receipt, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { title: 'Settled Payments', value: '17,900,000 XAF', change: 'Orange & MTN Mobile Money', icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { title: 'Active Quotations', value: '3', change: '1 Approved, 1 Sent, 1 Draft', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-        ];
-      case 'customer':
-        return [
-          { title: 'My Invoices', value: '3', change: '1 pending settlement', icon: Receipt, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { title: 'Active Quotations', value: '2', change: 'Awaiting your review', icon: CheckSquare, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
-          { title: 'Completed Payments', value: '17,900,000 XAF', change: 'Mobile Money / Card', icon: CreditCard, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { title: 'AI Assistant', value: 'Active', change: '24/7 Account support', icon: Sparkles, color: 'text-blue-600', bg: 'bg-blue-50' },
-        ];
-      case 'employee':
-      default:
-        return [
-          { title: 'My Open Tasks', value: '4', change: '2 in progress', icon: CheckSquare, color: 'text-[#05AD98]', bg: 'bg-[#05AD98]/10' },
-          { title: 'Attendance Status', value: 'Present', change: 'Clocked in at 08:02', icon: Clock, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { title: 'Assigned Projects', value: '2', change: 'Enterprise Core, Mobile App', icon: FolderKanban, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { title: 'AI Assistant Prompts', value: 'Active', change: 'Daily assistant available', icon: Sparkles, color: 'text-purple-600', bg: 'bg-purple-50' },
-        ];
-    }
-  };
+  // Quick actions are intersected with granted modules so no forbidden link is offered
+  const quickActions = useMemo(() => {
+    const preferred = user?.role ? QUICK_ACTION_MODULES[user.role] || [] : [];
+    return preferred
+      .map((id) => accessibleModules.find((m) => m.id === id))
+      .filter((item): item is (typeof accessibleModules)[number] => Boolean(item))
+      .slice(0, 3);
+  }, [user?.role, accessibleModules]);
 
-  const kpis = getKpiCards();
+  const dashboard = useMemo(() => buildRoleDashboard(user), [user]);
+
+  // Panel links must also respect the granted modules
+  const allowedPaths = new Set(allowedModules.map((m) => m.path));
 
   return (
     <div className="space-y-5">
@@ -102,38 +55,36 @@ export const DashboardPage: React.FC = () => {
             Welcome back, <span className="text-[#05AD98]">{user?.name}</span>
           </h1>
 
-          <p className="mt-1 text-xs text-slate-500 max-w-2xl">
-            Modoo ERP operational workspace. All modules, database records, and business workflows are running smoothly.
-          </p>
+          <p className="mt-1 text-xs text-slate-500 max-w-2xl">{dashboard.subtitle}</p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => navigate('/tasks')}
-            leftIcon={<CheckSquare className="w-3.5 h-3.5" />}
-          >
-            Open Tasks Board
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/assistant')}
-            leftIcon={<Sparkles className="w-3.5 h-3.5 text-[#05AD98]" />}
-          >
-            AI Assistant
-          </Button>
-        </div>
+        {quickActions.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            {quickActions.map((action, idx) => {
+              const Icon = action.icon;
+              return (
+                <Button
+                  key={action.id}
+                  variant={idx === 0 ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => navigate(action.path)}
+                  leftIcon={<Icon className={`w-3.5 h-3.5 ${idx === 0 ? '' : 'text-[#05AD98]'}`} />}
+                >
+                  {action.label}
+                </Button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* KPI Metric Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((kpi, idx) => {
+        {dashboard.kpis.map((kpi) => {
           const Icon = kpi.icon;
           return (
             <div
-              key={idx}
+              key={kpi.title}
               className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs hover:shadow-xs hover:border-[#05AD98]/50 transition-all flex flex-col justify-between space-y-3"
             >
               <div className="flex items-center justify-between">
@@ -144,9 +95,82 @@ export const DashboardPage: React.FC = () => {
               </div>
 
               <div>
-                <h3 className="text-xl font-bold text-slate-900 tracking-tight">{kpi.value}</h3>
-                <p className="text-[11px] text-slate-500 font-medium mt-0.5">{kpi.change}</p>
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight capitalize">{kpi.value}</h3>
+                <p className="text-[11px] text-slate-500 font-medium mt-0.5">{kpi.hint}</p>
               </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Role-specific operational panels */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        {dashboard.panels.map((panel) => {
+          const PanelIcon = panel.icon;
+          const canFollowLink = panel.link && allowedPaths.has(panel.link.path);
+
+          return (
+            <div
+              key={panel.id}
+              className="bg-white rounded-xl border border-slate-200 shadow-xs flex flex-col"
+            >
+              <div className="p-4 border-b border-slate-100 flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="p-2 rounded-lg bg-slate-50 text-[#05AD98] border border-slate-200">
+                    <PanelIcon className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-bold text-slate-900 truncate">{panel.title}</h2>
+                    {panel.description && (
+                      <p className="text-[11px] text-slate-400 truncate">{panel.description}</p>
+                    )}
+                  </div>
+                </div>
+                <span className="text-[11px] font-semibold text-slate-400 whitespace-nowrap">
+                  {panel.items.length}
+                </span>
+              </div>
+
+              <div className="flex-1 divide-y divide-slate-100">
+                {panel.items.length === 0 ? (
+                  <div className="p-6 text-center space-y-2">
+                    <Inbox className="w-6 h-6 mx-auto text-slate-300" />
+                    <p className="text-xs text-slate-400">{panel.emptyLabel}</p>
+                  </div>
+                ) : (
+                  panel.items.slice(0, 6).map((item) => (
+                    <div key={item.id} className="px-4 py-2.5 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-slate-900 truncate">{item.title}</p>
+                        {item.subtitle && (
+                          <p className="text-[11px] text-slate-500 truncate">{item.subtitle}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-1 whitespace-nowrap">
+                        {item.badge && (
+                          <Badge variant={item.badge.variant} size="sm">
+                            {item.badge.label}
+                          </Badge>
+                        )}
+                        {item.meta && (
+                          <span className="text-[10px] text-slate-400 font-medium">{item.meta}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {canFollowLink && panel.link && (
+                <button
+                  type="button"
+                  onClick={() => navigate(panel.link!.path)}
+                  className="px-4 py-2.5 border-t border-slate-100 text-[11px] font-semibold text-[#05AD98] hover:bg-slate-50 transition-colors flex items-center justify-between cursor-pointer rounded-b-xl"
+                >
+                  <span>{panel.link.label}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           );
         })}
@@ -164,34 +188,44 @@ export const DashboardPage: React.FC = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
-          {accessibleModules.map((item) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={item.id}
-                onClick={() => navigate(item.path)}
-                className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:border-[#05AD98]/60 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between space-y-3"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#05AD98] group-hover:bg-[#05AD98] group-hover:text-white group-hover:border-[#05AD98] transition-all shadow-2xs">
-                    <Icon className="w-5 h-5" />
+        {accessibleModules.length === 0 ? (
+          <div className="py-8 text-center space-y-2">
+            <Inbox className="w-7 h-7 mx-auto text-slate-300" />
+            <p className="text-sm font-semibold text-slate-700">No modules assigned yet</p>
+            <p className="text-xs text-slate-400">
+              Contact your administrator to get access to the workspaces you need.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+            {accessibleModules.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => navigate(item.path)}
+                  className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:border-[#05AD98]/60 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between space-y-3"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#05AD98] group-hover:bg-[#05AD98] group-hover:text-white group-hover:border-[#05AD98] transition-all shadow-2xs">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-[#05AD98] transition-colors" />
                   </div>
-                  <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-[#05AD98] transition-colors" />
-                </div>
 
-                <div>
-                  <h3 className="font-bold text-xs text-slate-900 group-hover:text-[#05AD98] transition-colors">
-                    {item.label}
-                  </h3>
-                  <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
-                    {item.description || `Manage ${item.label.toLowerCase()} workflows`}
-                  </p>
+                  <div>
+                    <h3 className="font-bold text-xs text-slate-900 group-hover:text-[#05AD98] transition-colors">
+                      {item.label}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                      {item.description || `Manage ${item.label.toLowerCase()} workflows`}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

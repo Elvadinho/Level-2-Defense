@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { quotationService } from '../../services/quotationService';
 import { customerService } from '../../services/customerService';
 import { Quotation, Customer, CreateQuotationData, QuotationStatus } from '../../types/finance';
 import { MOCK_QUOTATIONS, MOCK_CUSTOMERS } from '../../data/mockData';
+import {
+  canManageFinance,
+  isCustomerRole,
+  resolveCustomerProfile,
+  scopeQuotations,
+} from '../../config/roleScope';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Badge } from '../../components/common/Badge';
@@ -17,10 +24,20 @@ import {
   CheckCircle2,
   Filter,
   Send,
+  XCircle,
 } from 'lucide-react';
 
 export const QuotationsPage: React.FC = () => {
-  const [quotations, setQuotations] = useState<Quotation[]>(MOCK_QUOTATIONS);
+  const { user } = useAuth();
+
+  // Sales staff draft and dispatch quotes, clients only review the ones addressed to them
+  const isClientView = isCustomerRole(user?.role);
+  const canManageQuotations = canManageFinance(user?.role);
+  const clientProfile = resolveCustomerProfile(user, MOCK_CUSTOMERS);
+
+  const [quotations, setQuotations] = useState<Quotation[]>(() =>
+    scopeQuotations(user, MOCK_QUOTATIONS, MOCK_CUSTOMERS)
+  );
   const [customers, setCustomers] = useState<Customer[]>(MOCK_CUSTOMERS);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,18 +67,22 @@ export const QuotationsPage: React.FC = () => {
         quotationService.getQuotations().catch(() => []),
         customerService.getCustomers().catch(() => []),
       ]);
-      setQuotations(Array.isArray(quotes) && quotes.length > 0 ? quotes : MOCK_QUOTATIONS);
-      setCustomers(Array.isArray(custs) && custs.length > 0 ? custs : MOCK_CUSTOMERS);
+      const resolvedCustomers = Array.isArray(custs) && custs.length > 0 ? custs : MOCK_CUSTOMERS;
+      const resolvedQuotations =
+        Array.isArray(quotes) && quotes.length > 0 ? quotes : MOCK_QUOTATIONS;
+
+      setCustomers(resolvedCustomers);
+      setQuotations(scopeQuotations(user, resolvedQuotations, resolvedCustomers));
       if (custs.length > 0 && !formData.customer_id) {
         setFormData((prev) => ({ ...prev, customer_id: custs[0].id }));
       }
     } catch {
-      setQuotations(MOCK_QUOTATIONS);
+      setQuotations(scopeQuotations(user, MOCK_QUOTATIONS, MOCK_CUSTOMERS));
       setCustomers(MOCK_CUSTOMERS);
     } finally {
       setIsLoading(false);
     }
-  }, [formData.customer_id]);
+  }, [formData.customer_id, user]);
 
   useEffect(() => {
     fetchData();
@@ -179,22 +200,30 @@ export const QuotationsPage: React.FC = () => {
       <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-3">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-900 tracking-tight">Sales & Billing</span>
+            <span className="text-sm font-bold text-slate-900 tracking-tight">
+              {isClientView ? 'My Account' : 'Sales & Billing'}
+            </span>
             <span className="text-slate-300">/</span>
-            <span className="text-xs font-semibold text-[#05AD98]">Quotations & Estimates</span>
+            <span className="text-xs font-semibold text-[#05AD98]">
+              {isClientView
+                ? `Quotations${clientProfile ? ` · ${clientProfile.company_name || clientProfile.name}` : ''}`
+                : 'Quotations & Estimates'}
+            </span>
             <span className="text-xs text-slate-400 font-medium">({filteredQuotations.length} quotes)</span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleOpenCreate}
-              leftIcon={<Plus className="w-3.5 h-3.5" />}
-            >
-              Create Quotation
-            </Button>
-          </div>
+          {canManageQuotations && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenCreate}
+                leftIcon={<Plus className="w-3.5 h-3.5" />}
+              >
+                Create Quotation
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Filter / Search Bar */}
@@ -254,7 +283,11 @@ export const QuotationsPage: React.FC = () => {
           <div className="p-12 text-center text-slate-500 space-y-2">
             <FileText className="w-8 h-8 mx-auto text-slate-300" />
             <p className="text-sm font-semibold text-slate-700">No quotations found</p>
-            <p className="text-xs text-slate-400">Draft a new price estimate to see it listed here.</p>
+            <p className="text-xs text-slate-400">
+              {isClientView
+                ? 'No quotation has been shared with your account yet.'
+                : 'Draft a new price estimate to see it listed here.'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -262,7 +295,7 @@ export const QuotationsPage: React.FC = () => {
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="px-4 py-3">Quotation #</th>
-                  <th className="px-4 py-3">Customer</th>
+                  {!isClientView && <th className="px-4 py-3">Customer</th>}
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Total Amount</th>
                   <th className="px-4 py-3">Valid Until</th>
@@ -276,9 +309,11 @@ export const QuotationsPage: React.FC = () => {
                     <td className="px-4 py-3 font-semibold text-slate-900 font-mono">
                       {q.quotation_number}
                     </td>
-                    <td className="px-4 py-3 text-slate-700 font-medium">
-                      {q.customer?.name || q.customer?.company_name || `Customer #${q.customer_id}`}
-                    </td>
+                    {!isClientView && (
+                      <td className="px-4 py-3 text-slate-700 font-medium">
+                        {q.customer?.name || q.customer?.company_name || `Customer #${q.customer_id}`}
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <Badge
                         variant={
@@ -299,13 +334,13 @@ export const QuotationsPage: React.FC = () => {
                       {Number(q.total_amount).toLocaleString()} XAF
                     </td>
                     <td className="px-4 py-3 text-slate-500">
-                      {q.valid_until || '��'}
+                      {q.valid_until || '—'}
                     </td>
                     <td className="px-4 py-3 text-slate-500 max-w-[200px] truncate">
                       {q.notes || 'Standard terms'}
                     </td>
                     <td className="px-4 py-3 text-right space-x-1">
-                      {q.status === 'draft' && (
+                      {q.status === 'draft' && canManageQuotations && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -323,6 +358,16 @@ export const QuotationsPage: React.FC = () => {
                           leftIcon={<CheckCircle2 className="w-3 h-3" />}
                         >
                           Approve
+                        </Button>
+                      )}
+                      {q.status === 'sent' && isClientView && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleStatusChange(q.id, 'declined')}
+                          leftIcon={<XCircle className="w-3 h-3 text-rose-600" />}
+                        >
+                          Decline
                         </Button>
                       )}
                     </td>

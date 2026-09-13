@@ -1,8 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { paymentService } from '../../services/paymentService';
 import { invoiceService } from '../../services/invoiceService';
 import { Payment, Invoice, InitiatePaymentData } from '../../types/finance';
-import { MOCK_PAYMENTS, MOCK_INVOICES } from '../../data/mockData';
+import { MOCK_PAYMENTS, MOCK_INVOICES, MOCK_CUSTOMERS } from '../../data/mockData';
+import {
+  canManageFinance,
+  isCustomerRole,
+  resolveCustomerProfile,
+  scopeInvoices,
+  scopePayments,
+} from '../../config/roleScope';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Badge } from '../../components/common/Badge';
@@ -20,8 +28,19 @@ import {
 } from 'lucide-react';
 
 export const PaymentsPage: React.FC = () => {
-  const [payments, setPayments] = useState<Payment[]>(MOCK_PAYMENTS);
-  const [invoices, setInvoices] = useState<Invoice[]>(MOCK_INVOICES);
+  const { user } = useAuth();
+
+  // Clients settle their own invoices, accounting sees every transaction
+  const isClientView = isCustomerRole(user?.role);
+  const canVerifyPayments = canManageFinance(user?.role);
+  const clientProfile = resolveCustomerProfile(user, MOCK_CUSTOMERS);
+
+  const [payments, setPayments] = useState<Payment[]>(() =>
+    scopePayments(user, MOCK_PAYMENTS, MOCK_CUSTOMERS)
+  );
+  const [invoices, setInvoices] = useState<Invoice[]>(() =>
+    scopeInvoices(user, MOCK_INVOICES, MOCK_CUSTOMERS)
+  );
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -56,8 +75,16 @@ export const PaymentsPage: React.FC = () => {
         invoiceService.getInvoices().catch(() => []),
       ]);
 
-      const resolvedPayments = Array.isArray(payData) && payData.length > 0 ? payData : MOCK_PAYMENTS;
-      const resolvedInvoices = Array.isArray(invData) && invData.length > 0 ? invData : MOCK_INVOICES;
+      const resolvedPayments = scopePayments(
+        user,
+        Array.isArray(payData) && payData.length > 0 ? payData : MOCK_PAYMENTS,
+        MOCK_CUSTOMERS
+      );
+      const resolvedInvoices = scopeInvoices(
+        user,
+        Array.isArray(invData) && invData.length > 0 ? invData : MOCK_INVOICES,
+        MOCK_CUSTOMERS
+      );
 
       setPayments(resolvedPayments);
       setInvoices(resolvedInvoices);
@@ -65,12 +92,12 @@ export const PaymentsPage: React.FC = () => {
         setFormData((prev) => ({ ...prev, invoice_id: resolvedInvoices[0].id }));
       }
     } catch {
-      setPayments(MOCK_PAYMENTS);
-      setInvoices(MOCK_INVOICES);
+      setPayments(scopePayments(user, MOCK_PAYMENTS, MOCK_CUSTOMERS));
+      setInvoices(scopeInvoices(user, MOCK_INVOICES, MOCK_CUSTOMERS));
     } finally {
       setIsLoading(false);
     }
-  }, [formData.invoice_id]);
+  }, [formData.invoice_id, user]);
 
   useEffect(() => {
     fetchData();
@@ -81,8 +108,8 @@ export const PaymentsPage: React.FC = () => {
       amount: Number(invoices[0]?.total_amount) || 150000,
       currency: 'XAF',
       method: 'orange_money',
-      phone: '+237 699 00 00 00',
-      email: 'client@company.com',
+      phone: clientProfile?.phone || '+237 699 00 00 00',
+      email: user?.email || clientProfile?.email || 'client@company.com',
       description: `Invoice settlement for ${invoices[0]?.invoice_number || 'INV-001'}`,
       invoice_id: invoices[0]?.id,
     });
@@ -198,9 +225,15 @@ export const PaymentsPage: React.FC = () => {
       <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-3">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-900 tracking-tight">Accounting</span>
+            <span className="text-sm font-bold text-slate-900 tracking-tight">
+              {isClientView ? 'My Account' : 'Accounting'}
+            </span>
             <span className="text-slate-300">/</span>
-            <span className="text-xs font-semibold text-[#05AD98]">Payments</span>
+            <span className="text-xs font-semibold text-[#05AD98]">
+              {isClientView
+                ? `Payments${clientProfile ? ` · ${clientProfile.company_name || clientProfile.name}` : ''}`
+                : 'Payments'}
+            </span>
             <span className="text-xs text-slate-400 font-medium">({filteredPayments.length} transactions)</span>
           </div>
 
@@ -211,7 +244,7 @@ export const PaymentsPage: React.FC = () => {
               onClick={handleOpenModal}
               leftIcon={<Plus className="w-3.5 h-3.5" />}
             >
-              Process Payment
+              {isClientView ? 'Pay an Invoice' : 'Process Payment'}
             </Button>
           </div>
         </div>
@@ -285,7 +318,11 @@ export const PaymentsPage: React.FC = () => {
           <div className="p-12 text-center text-slate-500 space-y-2">
             <DollarSign className="w-8 h-8 mx-auto text-slate-300" />
             <p className="text-sm font-semibold text-slate-700">No payment transactions found</p>
-            <p className="text-xs text-slate-400">Initiate a customer payment to view records here.</p>
+            <p className="text-xs text-slate-400">
+              {isClientView
+                ? 'No payment has been recorded for your account yet.'
+                : 'Initiate a customer payment to view records here.'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -297,7 +334,7 @@ export const PaymentsPage: React.FC = () => {
                   <th className="px-4 py-3">Amount</th>
                   <th className="px-4 py-3">Payment Method</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Customer / Phone</th>
+                  {!isClientView && <th className="px-4 py-3">Customer / Phone</th>}
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
@@ -331,15 +368,17 @@ export const PaymentsPage: React.FC = () => {
                         {p.status}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      <div>{p.email || '—'}</div>
-                      {p.phone && <div className="text-[10px] text-slate-400">{p.phone}</div>}
-                    </td>
+                    {!isClientView && (
+                      <td className="px-4 py-3 text-slate-600">
+                        <div>{p.email || '—'}</div>
+                        {p.phone && <div className="text-[10px] text-slate-400">{p.phone}</div>}
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
                       {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {p.status === 'pending' && (
+                      {p.status === 'pending' && canVerifyPayments && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -364,7 +403,9 @@ export const PaymentsPage: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-lg w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-base text-slate-900">Process Customer Payment</h3>
+              <h3 className="font-bold text-base text-slate-900">
+                {isClientView ? 'Settle an Invoice' : 'Process Customer Payment'}
+              </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 p-1 rounded-md"

@@ -1,5 +1,5 @@
 /**
- * Authentication and User Types for Modoo ERP
+ * Authentication and User Types for Modoo
  */
 
 // Available user roles in the system matching backend Enum

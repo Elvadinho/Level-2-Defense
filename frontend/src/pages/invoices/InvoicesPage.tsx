@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { invoiceService } from '../../services/invoiceService';
 import { customerService } from '../../services/customerService';
 import { Invoice, Customer, CreateInvoiceData, InvoiceStatus } from '../../types/finance';
 import { MOCK_INVOICES, MOCK_CUSTOMERS } from '../../data/mockData';
+import {
+  canManageFinance,
+  isCustomerRole,
+  resolveCustomerProfile,
+  scopeInvoices,
+} from '../../config/roleScope';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Badge } from '../../components/common/Badge';
@@ -22,7 +29,16 @@ import {
 
 export const InvoicesPage: React.FC = () => {
   const navigate = useNavigate();
-  const [invoices, setInvoices] = useState<Invoice[]>(MOCK_INVOICES);
+  const { user } = useAuth();
+
+  // Clients only ever read their own ledger, staff keep the full accounting view
+  const isClientView = isCustomerRole(user?.role);
+  const canIssueInvoices = canManageFinance(user?.role);
+  const clientProfile = resolveCustomerProfile(user, MOCK_CUSTOMERS);
+
+  const [invoices, setInvoices] = useState<Invoice[]>(() =>
+    scopeInvoices(user, MOCK_INVOICES, MOCK_CUSTOMERS)
+  );
   const [customers, setCustomers] = useState<Customer[]>(MOCK_CUSTOMERS);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,18 +68,23 @@ export const InvoicesPage: React.FC = () => {
         invoiceService.getInvoices().catch(() => []),
         customerService.getCustomers().catch(() => []),
       ]);
-      setInvoices(Array.isArray(invData) && invData.length > 0 ? invData : MOCK_INVOICES);
-      setCustomers(Array.isArray(custData) && custData.length > 0 ? custData : MOCK_CUSTOMERS);
+      const resolvedCustomers =
+        Array.isArray(custData) && custData.length > 0 ? custData : MOCK_CUSTOMERS;
+      const resolvedInvoices =
+        Array.isArray(invData) && invData.length > 0 ? invData : MOCK_INVOICES;
+
+      setCustomers(resolvedCustomers);
+      setInvoices(scopeInvoices(user, resolvedInvoices, resolvedCustomers));
       if (custData.length > 0 && !formData.customer_id) {
         setFormData((prev) => ({ ...prev, customer_id: custData[0].id }));
       }
     } catch {
-      setInvoices(MOCK_INVOICES);
+      setInvoices(scopeInvoices(user, MOCK_INVOICES, MOCK_CUSTOMERS));
       setCustomers(MOCK_CUSTOMERS);
     } finally {
       setIsLoading(false);
     }
-  }, [formData.customer_id]);
+  }, [formData.customer_id, user]);
 
   useEffect(() => {
     fetchData();
@@ -179,22 +200,30 @@ export const InvoicesPage: React.FC = () => {
       <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-3">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-900 tracking-tight">Accounting</span>
+            <span className="text-sm font-bold text-slate-900 tracking-tight">
+              {isClientView ? 'My Account' : 'Accounting'}
+            </span>
             <span className="text-slate-300">/</span>
-            <span className="text-xs font-semibold text-[#05AD98]">Customer Invoices</span>
+            <span className="text-xs font-semibold text-[#05AD98]">
+              {isClientView
+                ? `Invoices${clientProfile ? ` · ${clientProfile.company_name || clientProfile.name}` : ''}`
+                : 'Customer Invoices'}
+            </span>
             <span className="text-xs text-slate-400 font-medium">({filteredInvoices.length} invoices)</span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleOpenCreate}
-              leftIcon={<Plus className="w-3.5 h-3.5" />}
-            >
-              Issue Invoice
-            </Button>
-          </div>
+          {canIssueInvoices && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenCreate}
+                leftIcon={<Plus className="w-3.5 h-3.5" />}
+              >
+                Issue Invoice
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Filter / Search Bar */}
@@ -254,7 +283,11 @@ export const InvoicesPage: React.FC = () => {
           <div className="p-12 text-center text-slate-500 space-y-2">
             <Receipt className="w-8 h-8 mx-auto text-slate-300" />
             <p className="text-sm font-semibold text-slate-700">No invoices recorded</p>
-            <p className="text-xs text-slate-400">Issue an invoice to bill customers.</p>
+            <p className="text-xs text-slate-400">
+              {isClientView
+                ? 'No invoice has been issued to your account yet.'
+                : 'Issue an invoice to bill customers.'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -262,7 +295,7 @@ export const InvoicesPage: React.FC = () => {
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="px-4 py-3">Invoice #</th>
-                  <th className="px-4 py-3">Customer</th>
+                  {!isClientView && <th className="px-4 py-3">Customer</th>}
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Amount Due</th>
                   <th className="px-4 py-3">Due Date</th>
@@ -276,9 +309,11 @@ export const InvoicesPage: React.FC = () => {
                     <td className="px-4 py-3 font-semibold text-slate-900 font-mono">
                       {inv.invoice_number}
                     </td>
-                    <td className="px-4 py-3 text-slate-700 font-medium">
-                      {inv.customer?.name || inv.customer?.company_name || `Customer #${inv.customer_id}`}
-                    </td>
+                    {!isClientView && (
+                      <td className="px-4 py-3 text-slate-700 font-medium">
+                        {inv.customer?.name || inv.customer?.company_name || `Customer #${inv.customer_id}`}
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <Badge
                         variant={
@@ -307,14 +342,16 @@ export const InvoicesPage: React.FC = () => {
                     <td className="px-4 py-3 text-right space-x-1">
                       {inv.status !== 'paid' && (
                         <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleStatusChange(inv.id, 'paid')}
-                            leftIcon={<CheckCircle2 className="w-3 h-3 text-emerald-600" />}
-                          >
-                            Mark Paid
-                          </Button>
+                          {canIssueInvoices && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleStatusChange(inv.id, 'paid')}
+                              leftIcon={<CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+                            >
+                              Mark Paid
+                            </Button>
+                          )}
                           <Button
                             variant="primary"
                             size="sm"

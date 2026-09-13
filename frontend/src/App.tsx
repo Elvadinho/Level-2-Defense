@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
+import { getRolesForModule } from './config/navigation';
 
 // Auth Pages
 import { LoginPage } from './pages/auth/LoginPage';
@@ -51,7 +52,7 @@ export const App: React.FC = () => {
               <Route
                 path="/employees"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'hr_manager', 'project_manager']}>
+                  <ProtectedRoute allowedRoles={getRolesForModule('employees')}>
                     <EmployeesPage />
                   </ProtectedRoute>
                 }
@@ -59,9 +60,7 @@ export const App: React.FC = () => {
               <Route
                 path="/attendance"
                 element={
-                  <ProtectedRoute
-                    allowedRoles={['admin', 'hr_manager', 'project_manager', 'employee']}
-                  >
+                  <ProtectedRoute allowedRoles={getRolesForModule('attendance')}>
                     <AttendancePage />
                   </ProtectedRoute>
                 }
@@ -69,7 +68,7 @@ export const App: React.FC = () => {
               <Route
                 path="/projects"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'project_manager', 'hr_manager']}>
+                  <ProtectedRoute allowedRoles={getRolesForModule('projects')}>
                     <ProjectsPage />
                   </ProtectedRoute>
                 }
@@ -77,7 +76,7 @@ export const App: React.FC = () => {
               <Route
                 path="/tasks"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'project_manager', 'employee', 'hr_manager']}>
+                  <ProtectedRoute allowedRoles={getRolesForModule('tasks')}>
                     <TasksPage />
                   </ProtectedRoute>
                 }
@@ -87,7 +86,7 @@ export const App: React.FC = () => {
               <Route
                 path="/customers"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'accountant']}>
+                  <ProtectedRoute allowedRoles={getRolesForModule('customers')}>
                     <CustomersPage />
                   </ProtectedRoute>
                 }
@@ -95,7 +94,7 @@ export const App: React.FC = () => {
               <Route
                 path="/quotations"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'accountant', 'customer']}>
+                  <ProtectedRoute allowedRoles={getRolesForModule('quotations')}>
                     <QuotationsPage />
                   </ProtectedRoute>
                 }
@@ -103,7 +102,7 @@ export const App: React.FC = () => {
               <Route
                 path="/invoices"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'accountant', 'customer']}>
+                  <ProtectedRoute allowedRoles={getRolesForModule('invoices')}>
                     <InvoicesPage />
                   </ProtectedRoute>
                 }
@@ -111,7 +110,7 @@ export const App: React.FC = () => {
               <Route
                 path="/payments"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'accountant', 'customer']}>
+                  <ProtectedRoute allowedRoles={getRolesForModule('payments')}>
                     <PaymentsPage />
                   </ProtectedRoute>
                 }
@@ -121,9 +120,7 @@ export const App: React.FC = () => {
               <Route
                 path="/assistant"
                 element={
-                  <ProtectedRoute
-                    allowedRoles={['admin', 'hr_manager', 'project_manager', 'employee', 'accountant']}
-                  >
+                  <ProtectedRoute allowedRoles={getRolesForModule('ai-assistant')}>
                     <AIAssistantPage />
                   </ProtectedRoute>
                 }

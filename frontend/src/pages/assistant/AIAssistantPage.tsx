@@ -39,7 +39,7 @@ export const AIAssistantPage: React.FC = () => {
       {
         id: 'welcome',
         sender: 'assistant',
-        text: `Hello ${user?.name || 'there'}! I am your Modoo ERP Business Assistant. I can analyze project deadlines, summarize customer invoices, check attendance metrics, or assist with daily operations. How can I help you today?`,
+        text: `Hello ${user?.name || 'there'}! I am your Modoo Business Assistant. I can analyze project deadlines, summarize customer invoices, check attendance metrics, or assist with daily operations. How can I help you today?`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       },
     ]);
@@ -120,7 +120,7 @@ export const AIAssistantPage: React.FC = () => {
     } catch {
       // Smart ERP fallback answer
       setTimeout(() => {
-        let answer = `I analyzed the Modoo ERP workspace for your query "${q}". `;
+        let answer = `I analyzed the Modoo workspace for your query "${q}". `;
         if (q.toLowerCase().includes('invoice') || q.toLowerCase().includes('payment')) {
           answer += `Currently, there are 3 invoices on file (1 Paid: 14,500,000 XAF, 1 Sent: 6,800,000 XAF, 1 Overdue: 2,400,000 XAF). Total receivables pending: 9,200,000 XAF.`;
         } else if (q.toLowerCase().includes('employee') || q.toLowerCase().includes('attendance')) {

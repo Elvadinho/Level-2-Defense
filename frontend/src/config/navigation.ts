@@ -22,7 +22,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     label: 'Dashboard',
     path: '/dashboard',
     icon: LayoutDashboard,
-    roles: ['admin', 'hr_manager', 'project_manager', 'employee', 'accountant', 'customer'],
+    roles: ['admin', 'hr_manager', 'project_manager', 'employee', 'accountant', 'customer', 'intern'],
     description: 'System overview and core KPIs',
   },
   {
@@ -38,7 +38,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     label: 'Attendance',
     path: '/attendance',
     icon: Clock,
-    roles: ['admin', 'hr_manager', 'project_manager', 'employee'],
+    roles: ['admin', 'hr_manager', 'project_manager', 'employee', 'intern'],
     description: 'Check-in/out, QR code verification & logs',
   },
   {
@@ -54,7 +54,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     label: 'Tasks',
     path: '/tasks',
     icon: CheckSquare,
-    roles: ['admin', 'project_manager', 'employee', 'hr_manager'],
+    roles: ['admin', 'project_manager', 'employee', 'hr_manager', 'intern'],
     description: 'Task assignments, boards & activity comments',
   },
   {
@@ -94,10 +94,17 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     label: 'AI Assistant',
     path: '/assistant',
     icon: Bot,
-    roles: ['admin', 'hr_manager', 'project_manager', 'employee', 'accountant'],
+    roles: ['admin', 'hr_manager', 'project_manager', 'employee', 'accountant', 'intern'],
     description: 'Intelligent business assistant',
   },
 ];
+
+/**
+ * Roles granted access to a module.
+ * Routes reuse this helper so the sidebar and the route guards can never drift apart.
+ */
+export const getRolesForModule = (moduleId: string): UserRole[] =>
+  ALL_NAV_ITEMS.find((item) => item.id === moduleId)?.roles || [];
 
 /**
  * Filter navigation items accessible to a given role

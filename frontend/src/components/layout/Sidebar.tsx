@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getNavGroupsForRole } from '../../config/navigation';
 import { Badge } from '../common/Badge';
 import { X, Sparkles } from 'lucide-react';
+import { ModooLogo } from '../common/ModooLogo';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -43,9 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <div className="h-14 px-5 flex items-center justify-between border-b border-slate-200 bg-white">
           <NavLink to="/dashboard" className="flex items-center gap-2.5 focus:outline-none">
             {/* Vichy Modern Logo Mark */}
-            <div className="w-8 h-8 rounded-lg bg-[#05AD98] flex items-center justify-center text-white font-bold text-sm shadow-xs">
-              M
-            </div>
+            <ModooLogo size={28} />
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-base tracking-tight text-slate-900">Modoo</span>

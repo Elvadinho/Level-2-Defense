@@ -15,6 +15,7 @@ import {
   UserCheck,
   ArrowRight,
 } from 'lucide-react';
+import { ModooLogo } from '../../components/common/ModooLogo';
 
 /**
  * SignupPage Component
@@ -115,7 +116,6 @@ export const SignupPage: React.FC = () => {
 
   const availableRoles: UserRole[] = [
     'employee',
-    'admin',
     'hr_manager',
     'project_manager',
     'accountant',
@@ -127,14 +127,12 @@ export const SignupPage: React.FC = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Brand Header */}
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#05AD98] text-white font-bold text-xl shadow-sm mb-3">
-            M
-          </div>
+          <ModooLogo size={56} className="mx-auto mb-3" />
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
             Create an Account
           </h1>
           <p className="mt-1 text-xs text-slate-500">
-            Join <span className="font-semibold text-slate-700">Modoo ERP</span> and streamline your workflows
+            Join <span className="font-semibold text-slate-700">Modoo</span> and streamline your workflows
           </p>
         </div>
       </div>

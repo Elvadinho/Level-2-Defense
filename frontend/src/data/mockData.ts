@@ -104,7 +104,7 @@ export const MOCK_EMPLOYEES: Employee[] = [
 export const MOCK_PROJECTS: Project[] = [
   {
     id: 1,
-    name: 'Modoo ERP Enterprise Core',
+    name: 'Modoo Enterprise Core',
     description: 'High-efficiency modular ERP system streamlining operations, finance, attendance, and project lifecycles.',
     status: 'active',
     start_date: '2026-01-15',
@@ -365,7 +365,7 @@ export const MOCK_QUOTATIONS: Quotation[] = [
     status: 'approved',
     total_amount: 14500000,
     valid_until: '2026-10-15',
-    notes: 'Modoo ERP cloud hosting and custom enterprise workflow configuration.',
+    notes: 'Modoo cloud hosting and custom enterprise workflow configuration.',
     created_at: '2026-08-20T10:00:00Z',
     customer: MOCK_CUSTOMERS[0],
     items: [

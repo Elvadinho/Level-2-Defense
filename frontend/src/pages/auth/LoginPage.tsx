@@ -6,6 +6,7 @@ import { Button } from '../../components/common/Button';
 import { Alert } from '../../components/common/Alert';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react';
 import { UserRole } from '../../types/auth';
+import { ModooLogo } from '../../components/common/ModooLogo';
 
 /**
  * LoginPage Component
@@ -101,11 +102,9 @@ export const LoginPage: React.FC = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Brand Header */}
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#05AD98] text-white font-bold text-xl shadow-sm mb-3">
-            M
-          </div>
+          <ModooLogo size={56} className="mx-auto mb-3" />
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Sign in to <span className="text-[#05AD98]">Modoo ERP</span>
+            Sign in to <span className="text-[#05AD98]">Modoo</span>
           </h1>
           <p className="mt-1 text-xs text-slate-500">
             Enterprise management workspace for operations, HR & finance
@@ -225,6 +224,22 @@ export const LoginPage: React.FC = () => {
               >
                 <span>💼 <strong>Accountant</strong></span>
                 <span className="text-[10px] text-slate-400 font-normal">Billing & Invoices</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('employee')}
+                className="p-2 rounded-lg bg-slate-50 hover:bg-[#05AD98]/10 hover:text-[#05AD98] hover:border-[#05AD98]/30 text-slate-700 text-left border border-slate-200 transition-colors flex items-center justify-between cursor-pointer"
+              >
+                <span>👋 <strong>Employee</strong></span>
+                <span className="text-[10px] text-slate-400 font-normal">Portal & Tasks</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('customer')}
+                className="p-2 rounded-lg bg-slate-50 hover:bg-[#05AD98]/10 hover:text-[#05AD98] hover:border-[#05AD98]/30 text-slate-700 text-left border border-slate-200 transition-colors flex items-center justify-between cursor-pointer"
+              >
+                <span>🛒 <strong>Customer</strong></span>
+                <span className="text-[10px] text-slate-400 font-normal">Invoices & Quotes</span>
               </button>
             </div>
 

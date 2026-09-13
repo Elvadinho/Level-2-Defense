@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Badge } from '../common/Badge';
-import { Menu, LogOut, ShieldCheck, Building2, Bell, Check, Loader2 } from 'lucide-react';
+import { Menu, LogOut, Bell, Check, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ModooLogo } from '../common/ModooLogo';
 import { notificationService } from '../../services/notificationService';
 import { Notification } from '../../types/notification';
 
@@ -109,8 +109,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
 
         <div className="flex items-center gap-2 text-xs text-slate-500">
           <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-100 text-slate-700 font-medium">
-            <Building2 className="w-3.5 h-3.5 text-[#05AD98]" />
-            <span>Modoo ERP</span>
+            <ModooLogo size={16} />
+            <span>Modoo</span>
           </div>
           <span className="text-slate-300">/</span>
           <span className="text-slate-800 font-semibold tracking-tight">Enterprise Workspace</span>
@@ -197,14 +197,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
               )}
             </div>
 
-            {/* Role Badge Indicator */}
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-200 text-xs">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#05AD98]" />
-              <Badge role={user.role} size="sm" />
-            </div>
-
             {/* User Profile Info */}
-            <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200">
+            <div className="flex items-center gap-2.5 pl-2">
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#05AD98] to-[#049381] text-white font-semibold flex items-center justify-center text-xs shadow-xs">
                 {user.name.charAt(0).toUpperCase()}
               </div>

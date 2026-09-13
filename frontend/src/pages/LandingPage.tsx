@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link, Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ArrowRight,
   Users,
@@ -13,84 +12,186 @@ import {
   CreditCard,
   Bot,
   CheckCircle2,
-  PlayCircle,
-  Shield,
-  Zap,
-  Globe,
   Star,
+  ArrowUpRight,
+  Sparkles,
+  BarChart3,
 } from 'lucide-react';
 import { Button } from '../components/common/Button';
+import { ModooLogo } from '../components/common/ModooLogo';
 
-/* ───────── SVG Swoop Arrows ───────── */
-const SwoopArrow1: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} viewBox="0 0 150 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M10 80 C 40 20, 100 20, 140 60" stroke="#05AD98" strokeWidth="2.5" strokeLinecap="round" fill="transparent" />
-    <path d="M125 45 L 140 60 L 120 70" stroke="#05AD98" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="transparent" />
+/* ═══════ Odoo-style hand-drawn arrows ═══════ */
+const HandDrawnArrowDown: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 60 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M30 5 C 28 15, 35 25, 32 40 C 29 55, 25 60, 28 75 C 31 90, 30 95, 30 105"
+      stroke="#05AD98"
+      strokeWidth="2"
+      strokeLinecap="round"
+      fill="none"
+      strokeDasharray="4 2"
+    />
+    <path d="M24 95 L30 110 L36 95" stroke="#05AD98" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
   </svg>
 );
 
-const SwoopArrow2: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} viewBox="0 0 150 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M140 80 C 110 20, 50 20, 10 60" stroke="#05AD98" strokeWidth="2.5" strokeLinecap="round" fill="transparent" />
-    <path d="M25 45 L 10 60 L 30 70" stroke="#05AD98" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="transparent" />
+const HandDrawnArrowRight: React.FC<{ className?: string; flip?: boolean }> = ({ className, flip }) => (
+  <svg className={className} viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={flip ? { transform: 'scaleX(-1)' } : undefined}>
+    <path
+      d="M10 60 C 30 55, 40 25, 60 20 C 80 15, 100 35, 120 25 C 140 15, 155 20, 175 30"
+      stroke="#05AD98"
+      strokeWidth="2"
+      strokeLinecap="round"
+      fill="none"
+    />
+    <path d="M165 20 L178 32 L165 38" stroke="#05AD98" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
   </svg>
 );
 
-/* ───────── Animated Counter Hook ───────── */
-const useCounter = (target: number, duration = 2000) => {
-  const [count, setCount] = useState(0);
+const HandDrawnArrowCurve: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M15 75 C 35 70, 50 20, 80 15 C 110 10, 125 40, 145 35"
+      stroke="#05AD98"
+      strokeWidth="2"
+      strokeLinecap="round"
+      fill="none"
+    />
+    <path d="M135 25 L148 36 L135 42" stroke="#05AD98" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+  </svg>
+);
+
+/* ═══════ Fade-in on scroll ═══════ */
+const useFadeIn = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
   useEffect(() => {
-    let start = 0;
-    const increment = target / (duration / 16);
-    const timer = setInterval(() => {
-      start += increment;
-      if (start >= target) {
-        setCount(target);
-        clearInterval(timer);
-      } else {
-        setCount(Math.floor(start));
-      }
-    }, 16);
-    return () => clearInterval(timer);
-  }, [target, duration]);
-  return count;
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setVisible(true); },
+      { threshold: 0.12 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return { ref, visible };
 };
 
+const FadeIn: React.FC<{ children: React.ReactNode; className?: string; delay?: string }> = ({ children, className = '', delay = '' }) => {
+  const { ref, visible } = useFadeIn();
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'} ${className}`}
+      style={delay ? { transitionDelay: delay } : undefined}
+    >
+      {children}
+    </div>
+  );
+};
+
+/* ═══════ Stat counter (triggers on scroll) ═══════ */
+const StatCounter: React.FC<{ value: number; suffix?: string; label: string }> = ({ value, suffix = '', label }) => {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      let start = 0;
+      const inc = value / 120;
+      const timer = setInterval(() => {
+        start += inc;
+        if (start >= value) { setCount(value); clearInterval(timer); }
+        else setCount(Math.floor(start));
+      }, 16);
+      obs.disconnect();
+    }, { threshold: 0.3 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [value]);
+  return (
+    <div ref={ref} className="text-center">
+      <div className="text-3xl md:text-4xl font-black text-slate-900">{count}{suffix}</div>
+      <div className="text-xs text-slate-500 font-semibold mt-1">{label}</div>
+    </div>
+  );
+};
+
+/* ═══════ Typing animation for hero ═══════ */
+const useTyping = (words: string[], speed = 100, pause = 2000) => {
+  const [text, setText] = useState('');
+  const [wordIdx, setWordIdx] = useState(0);
+  const [charIdx, setCharIdx] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const word = words[wordIdx];
+    const timeout = setTimeout(() => {
+      if (!deleting) {
+        setText(word.slice(0, charIdx + 1));
+        if (charIdx + 1 === word.length) {
+          setTimeout(() => setDeleting(true), pause);
+        } else {
+          setCharIdx(charIdx + 1);
+        }
+      } else {
+        setText(word.slice(0, charIdx));
+        if (charIdx === 0) {
+          setDeleting(false);
+          setWordIdx((wordIdx + 1) % words.length);
+        } else {
+          setCharIdx(charIdx - 1);
+        }
+      }
+    }, deleting ? speed / 2 : speed);
+
+    return () => clearTimeout(timeout);
+  }, [charIdx, deleting, wordIdx, words, speed, pause]);
+
+  return text;
+};
+
+/* ═══════════════════════════════════════════════════════
+   LANDING PAGE
+   ═══════════════════════════════════════════════════════ */
 export const LandingPage: React.FC = () => {
+  const typedText = useTyping(['in one place.', 'effortlessly.', 'with Modoo.'], 80, 2500);
 
   const modules = [
-    { icon: <Users className="w-6 h-6" />, name: 'Employees', desc: 'Centralized directory and access rights management across departments.' },
-    { icon: <Clock className="w-6 h-6" />, name: 'Attendance', desc: 'Time tracking with secure QR code and GPS geofencing verification.' },
-    { icon: <FolderKanban className="w-6 h-6" />, name: 'Projects', desc: 'Resource allocation, milestones, and project lifecycle tracking.' },
-    { icon: <CheckSquare className="w-6 h-6" />, name: 'Tasks', desc: 'Kanban boards with drag-and-drop, custom stages, and comments.' },
-    { icon: <Building2 className="w-6 h-6" />, name: 'Customers', desc: 'Comprehensive CRM with contact management and account linking.' },
-    { icon: <FileText className="w-6 h-6" />, name: 'Quotations', desc: 'Professional estimates with line items and one-click conversion.' },
-    { icon: <Receipt className="w-6 h-6" />, name: 'Invoices', desc: 'Automated billing, reconciliation, and payment status tracking.' },
-    { icon: <CreditCard className="w-6 h-6" />, name: 'Payments', desc: 'MTN Mobile Money, Orange Money, and Visa/Card integrations.' },
+    { icon: <Users className="w-5 h-5" />, name: 'Employees', desc: 'Directory & access roles' },
+    { icon: <Clock className="w-5 h-5" />, name: 'Attendance', desc: 'QR check-in & GPS' },
+    { icon: <FolderKanban className="w-5 h-5" />, name: 'Projects', desc: 'Milestones & resources' },
+    { icon: <CheckSquare className="w-5 h-5" />, name: 'Tasks', desc: 'Kanban & collaboration' },
+    { icon: <Building2 className="w-5 h-5" />, name: 'Customers', desc: 'CRM & relationships' },
+    { icon: <FileText className="w-5 h-5" />, name: 'Quotations', desc: 'Estimates & proposals' },
+    { icon: <Receipt className="w-5 h-5" />, name: 'Invoices', desc: 'Billing & payments' },
+    { icon: <CreditCard className="w-5 h-5" />, name: 'Payments', desc: 'MoMo, Orange, Visa' },
   ];
 
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-[#05AD98]/20 selection:text-[#037667] overflow-x-hidden">
-      {/* ═══════════ NAVIGATION ═══════════ */}
-      <nav className="fixed top-0 z-50 w-full bg-white/90 backdrop-blur-lg border-b border-slate-100">
+    <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-[#05AD98]/20 overflow-x-hidden">
+
+      {/* ═══════ NAVIGATION ═══════ */}
+      <nav className="fixed top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#05AD98] to-[#038577] flex items-center justify-center shadow-lg shadow-[#05AD98]/25">
-              <span className="text-white font-black text-lg leading-none">M</span>
-            </div>
-            <span className="font-black text-xl tracking-tight text-slate-900">Modoo</span>
-          </div>
+          <Link to="/" className="flex items-center gap-2">
+            <ModooLogo size={34} />
+            <span className="font-black text-xl tracking-tight text-slate-800">modoo</span>
+          </Link>
           <div className="hidden md:flex items-center gap-8">
-            <a href="#apps" className="text-sm font-semibold text-slate-600 hover:text-[#05AD98] transition-colors">Apps</a>
-            <a href="#operations" className="text-sm font-semibold text-slate-600 hover:text-[#05AD98] transition-colors">Features</a>
-            <a href="#ai" className="text-sm font-semibold text-slate-600 hover:text-[#05AD98] transition-colors">AI Assistant</a>
+            <a href="#apps" className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">Apps</a>
+            <a href="#features" className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">Features</a>
+            <a href="#ai" className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">AI</a>
           </div>
-          <div className="flex items-center gap-4">
-            <Link to="/login" className="text-sm font-semibold text-slate-700 hover:text-[#05AD98] transition-colors">
+          <div className="flex items-center gap-3">
+            <Link to="/login" className="text-sm font-semibold text-slate-600 hover:text-[#05AD98] transition-colors hidden sm:block">
               Sign in
             </Link>
             <Link to="/register">
-              <Button variant="primary" size="sm" className="px-5 shadow-lg shadow-[#05AD98]/25 hover:shadow-xl hover:shadow-[#05AD98]/30 transition-all">
+              <Button variant="primary" size="sm" className="px-5 shadow-md shadow-[#05AD98]/20">
                 Get Started
               </Button>
             </Link>
@@ -98,220 +199,232 @@ export const LandingPage: React.FC = () => {
         </div>
       </nav>
 
-      {/* ═══════════ HERO ═══════════ */}
-      <section 
-        className="relative pt-28 pb-20 lg:pt-36 lg:pb-28 overflow-hidden bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/images/modoo_hero_bg.jpg')" }}
-      >
-        {/* Subtle white overlay to ensure text readability */}
-        <div className="absolute inset-0 bg-white/70" />
+      {/* ═══════ HERO ═══════ */}
+      <section className="relative pt-32 pb-20 lg:pt-44 lg:pb-28 overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0 -z-10">
+          <img src="/images/modoo_hero_bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-white/80" />
+          <div className="absolute inset-0 opacity-[0.025]" style={{
+            backgroundImage: 'radial-gradient(circle, #05AD98 1px, transparent 1px)',
+            backgroundSize: '28px 28px',
+          }} />
+        </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-            {/* Left: Text */}
-            <div className="flex-1 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#05AD98]/10 text-[#037667] text-xs font-bold uppercase tracking-wider mb-6 border border-[#05AD98]/15">
-                <Zap className="w-3.5 h-3.5" /> Open-Source ERP for Africa
+            {/* Left */}
+            <div className="flex-1 text-center lg:text-left max-w-2xl">
+              <FadeIn>
+                <div className="flex items-center gap-2 mb-6 justify-center lg:justify-start">
+                  <ModooLogo size={48} />
+                </div>
+                <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[64px] font-black tracking-tight text-slate-900 leading-[1.08] mb-6">
+                  Manage your<br />
+                  entire business<br />
+                  <span className="text-[#05AD98]">{typedText}</span>
+                  <span className="animate-pulse text-[#05AD98]">|</span>
+                </h1>
+              </FadeIn>
+              <FadeIn delay="100ms">
+                <p className="text-lg text-slate-500 max-w-lg mb-8 leading-relaxed lg:mx-0 mx-auto">
+                  HR, Projects, Invoicing, Payments and AI unified for modern African enterprises.
+                </p>
+              </FadeIn>
+              <FadeIn delay="200ms">
+                <div className="flex flex-col sm:flex-row items-center gap-3 lg:justify-start justify-center">
+                  <Link to="/register">
+                    <Button variant="primary" size="lg" className="px-8 shadow-xl shadow-[#05AD98]/20 hover:-translate-y-0.5 transition-all">
+                      Get Started Free <ArrowRight className="w-5 h-5 ml-2" />
+                    </Button>
+                  </Link>
+                  <Link to="/login" className="text-sm font-semibold text-slate-500 hover:text-[#05AD98] transition-colors flex items-center gap-1.5 py-3">
+                    Sign in to your account <ArrowUpRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </FadeIn>
+
+              {/* Hand-drawn arrow pointing to the mockup */}
+              <div className="hidden lg:block mt-4">
+                <HandDrawnArrowRight className="w-44 h-16 ml-auto -mr-12 opacity-60" />
               </div>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[68px] font-black tracking-tight text-slate-900 mb-6 leading-[1.08]">
-                Manage your<br />
-                entire business<br />
-                <span className="bg-gradient-to-r from-[#05AD98] to-[#038577] bg-clip-text text-transparent">in one place.</span>
-              </h1>
-              <p className="text-lg md:text-xl text-slate-600 max-w-xl mb-8 leading-relaxed font-medium">
-                Modoo unifies HR, Projects, Sales, Invoicing and AI Assistance into one seamless platform designed for modern companies.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center gap-4 lg:justify-start justify-center">
-                <Link to="/register">
-                  <Button variant="primary" size="lg" className="px-8 text-base shadow-xl shadow-[#05AD98]/20 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-[#05AD98]/30 transition-all">
-                    Start your free trial <ArrowRight className="w-5 h-5 ml-2" />
-                  </Button>
-                </Link>
-                <Link to="/login">
-                  <Button variant="outline" size="lg" className="px-8 text-base bg-white border-slate-300 hover:border-[#05AD98] transition-all">
-                    <PlayCircle className="w-5 h-5 mr-2 text-[#05AD98]" /> Live Demo
-                  </Button>
-                </Link>
-              </div>
-              <p className="mt-5 text-sm text-slate-500 font-medium flex items-center gap-4 lg:justify-start justify-center">
-                <span className="flex items-center gap-1"><CheckCircle2 className="w-4 h-4 text-[#05AD98]" /> Free forever</span>
-                <span className="flex items-center gap-1"><Shield className="w-4 h-4 text-[#05AD98]" /> No credit card</span>
-                <span className="flex items-center gap-1"><Globe className="w-4 h-4 text-[#05AD98]" /> Open source</span>
-              </p>
             </div>
 
-            {/* Right: Rich UI Mockup */}
-            <div className="flex-1 relative w-full max-w-xl lg:max-w-none">
+            {/* Right: Dashboard Mockup */}
+            <FadeIn delay="300ms" className="flex-1 relative w-full max-w-xl lg:max-w-none">
               <div className="relative">
-                {/* Shadow behind mockup */}
-                <div className="absolute inset-4 bg-[#05AD98]/10 rounded-3xl blur-2xl" />
-                {/* Main Window */}
-                <div className="relative rounded-2xl border border-slate-200/80 bg-white shadow-2xl overflow-hidden">
+                <div className="absolute -inset-4 bg-gradient-to-br from-[#6ECFBF]/15 to-transparent rounded-3xl blur-2xl" />
+                <div className="relative rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/60 overflow-hidden">
                   {/* Title bar */}
-                  <div className="h-11 bg-slate-50 border-b border-slate-200 flex items-center px-4 gap-2">
-                    <div className="w-3 h-3 rounded-full bg-rose-400" />
-                    <div className="w-3 h-3 rounded-full bg-amber-400" />
-                    <div className="w-3 h-3 rounded-full bg-emerald-400" />
-                    <div className="ml-4 flex-1 h-5 bg-slate-200/60 rounded-md max-w-[200px]" />
+                  <div className="h-10 bg-slate-50 border-b border-slate-200/80 flex items-center px-4 gap-2">
+                    <div className="w-3 h-3 rounded-full bg-[#FF5F57]" />
+                    <div className="w-3 h-3 rounded-full bg-[#FEBC2E]" />
+                    <div className="w-3 h-3 rounded-full bg-[#28C840]" />
+                    <div className="ml-3 flex-1 max-w-[160px] h-5 bg-slate-100 rounded-md" />
                   </div>
-                  {/* Mockup content */}
                   <div className="flex">
                     {/* Sidebar */}
-                    <div className="w-48 border-r border-slate-100 p-3 space-y-2 hidden sm:block bg-slate-50/50">
+                    <div className="w-40 border-r border-slate-100 p-2.5 space-y-1 hidden sm:block bg-[#FAFBFC]">
                       {['Dashboard', 'Employees', 'Attendance', 'Projects', 'Tasks'].map((item, i) => (
-                        <div key={i} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${i === 0 ? 'bg-[#05AD98] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
-                          <div className={`w-4 h-4 rounded ${i === 0 ? 'bg-white/30' : 'bg-slate-200'}`} />
+                        <div key={i} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold ${i === 0 ? 'bg-[#05AD98] text-white' : 'text-slate-500'}`}>
+                          <div className={`w-3 h-3 rounded ${i === 0 ? 'bg-white/30' : 'bg-slate-200'}`} />
                           {item}
                         </div>
                       ))}
-                      <div className="pt-2 mt-2 border-t border-slate-100">
-                        {['Invoices', 'Payments', 'AI Assistant'].map((item, i) => (
-                          <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-500">
-                            <div className="w-4 h-4 rounded bg-slate-200" />
+                      <div className="pt-1.5 mt-1 border-t border-slate-100">
+                        {['Invoices', 'Payments', 'AI'].map((item, i) => (
+                          <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold text-slate-400">
+                            <div className="w-3 h-3 rounded bg-slate-100" />
                             {item}
                           </div>
                         ))}
                       </div>
                     </div>
-                    {/* Content area */}
-                    <div className="flex-1 p-4 space-y-4">
-                      {/* Header */}
+                    {/* Content */}
+                    <div className="flex-1 p-3 space-y-3">
                       <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <div className="w-28 h-4 bg-slate-200 rounded-md" />
-                          <div className="w-48 h-3 bg-slate-100 rounded-sm" />
-                        </div>
-                        <div className="w-24 h-8 bg-[#05AD98] rounded-lg" />
+                        <div className="w-24 h-3.5 bg-slate-200 rounded" />
+                        <div className="w-16 h-6 bg-[#05AD98] rounded-lg" />
                       </div>
-                      {/* KPI Cards */}
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-3 gap-2">
                         {[
-                          { label: 'Employees', val: '47', color: 'bg-[#05AD98]' },
-                          { label: 'Projects', val: '12', color: 'bg-blue-500' },
-                          { label: 'Revenue', val: '₣4.2M', color: 'bg-amber-500' },
-                        ].map((kpi, i) => (
-                          <div key={i} className="p-3 rounded-xl border border-slate-100 bg-white">
-                            <div className={`w-8 h-1.5 ${kpi.color} rounded-full mb-2 opacity-60`} />
-                            <div className="text-base font-black text-slate-900">{kpi.val}</div>
-                            <div className="text-[10px] text-slate-500 font-medium">{kpi.label}</div>
+                          { v: '47', l: 'Employees', c: '#05AD98' },
+                          { v: '12', l: 'Projects', c: '#3B82F6' },
+                          { v: '₣4.2M', l: 'Revenue', c: '#F59E0B' },
+                        ].map((k, i) => (
+                          <div key={i} className="p-2 rounded-xl border border-slate-100">
+                            <div className="w-5 h-1 rounded-full mb-1" style={{ backgroundColor: k.c, opacity: 0.5 }} />
+                            <div className="text-xs font-black text-slate-900">{k.v}</div>
+                            <div className="text-[8px] text-slate-400 font-medium">{k.l}</div>
                           </div>
                         ))}
                       </div>
-                      {/* Chart area */}
-                      <div className="h-28 bg-slate-50 rounded-xl border border-slate-100 flex items-end px-4 pb-3 gap-2">
-                        {[35, 55, 40, 75, 50, 90, 60, 85, 45, 70, 55, 80].map((h, i) => (
-                          <div key={i} className="flex-1 rounded-t-sm bg-[#05AD98]" style={{ height: `${h}%`, opacity: 0.3 + (h / 130) }} />
+                      <div className="h-20 bg-slate-50 rounded-xl border border-slate-100 flex items-end px-3 pb-2 gap-1">
+                        {[30, 50, 35, 70, 45, 85, 55, 75, 40, 65, 50, 80].map((h, i) => (
+                          <div key={i} className="flex-1 rounded-t-sm bg-[#05AD98]" style={{ height: `${h}%`, opacity: 0.25 + h / 140 }} />
                         ))}
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </FadeIn>
           </div>
         </div>
       </section>
 
-      {/* ═══════════ SOCIAL PROOF STRIP ═══════════ */}
-      <section className="py-16 bg-slate-50 border-y border-slate-200/60">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <StatCounter value={5} suffix="" label="Countries" />
-            <StatCounter value={8} suffix="" label="Business Apps" />
+      {/* ═══════ TRUSTED BY MARQUEE ═══════ */}
+      <section className="py-5 bg-slate-50/80 border-y border-slate-200/40 overflow-hidden">
+        <div className="flex animate-marquee whitespace-nowrap gap-12 text-sm font-semibold text-slate-400">
+          {[...Array(2)].map((_, rep) => (
+            <React.Fragment key={rep}>
+              {['Employee Management', '•', 'QR Attendance', '•', 'Kanban Tasks', '•', 'CRM', '•', 'Invoicing', '•', 'Mobile Money', '•', 'AI Assistant', '•', 'RBAC', '•', 'GPS Geofencing', '•'].map((t, i) => (
+                <span key={`${rep}-${i}`} className={t === '•' ? 'text-[#05AD98]/40' : ''}>{t}</span>
+              ))}
+            </React.Fragment>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════ STATS ═══════ */}
+      <section className="py-14 bg-white">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <StatCounter value={5} label="Countries" />
+            <StatCounter value={8} label="Business Apps" />
             <StatCounter value={25} suffix="+" label="Companies" />
-            <StatCounter value={99.9} suffix="%" label="Uptime SLA" decimal />
+            <StatCounter value={99} suffix="%" label="Uptime" />
           </div>
         </div>
       </section>
 
-      {/* ═══════════ APPS GRID ═══════════ */}
-      <section id="apps" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-              Everything you need with a <span className="text-[#05AD98]">top-notch</span> user experience.
-            </h2>
-            <p className="mt-4 text-lg text-slate-600 font-medium max-w-2xl mx-auto">
-              Our integrated suite of applications covers every aspect of your business operations.
-            </p>
-          </div>
+      {/* Hand-drawn arrow bridging Stats → Apps */}
+      <div className="flex justify-center -mt-4 -mb-4 relative z-10">
+        <HandDrawnArrowDown className="w-10 h-20 opacity-50" />
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      {/* ═══════ APPS GRID ═══════ */}
+      <section id="apps" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <FadeIn>
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+                A <span className="text-[#05AD98]">complete</span> suite of business apps.
+              </h2>
+              <p className="mt-3 text-slate-500 font-medium max-w-md mx-auto text-sm">
+                Every tool you need, seamlessly integrated.
+              </p>
+            </div>
+          </FadeIn>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
             {modules.map((mod, idx) => (
-              <div
-                key={idx}
-                className="group relative p-6 rounded-2xl border border-slate-200 bg-white hover:border-[#05AD98]/40 hover:shadow-xl hover:shadow-[#05AD98]/[0.07] transition-all duration-300 cursor-pointer flex flex-col text-left overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#05AD98]/[0.03] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-[#05AD98]/[0.06] transition-colors" />
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center text-[#05AD98] group-hover:from-[#05AD98] group-hover:to-[#038577] group-hover:text-white transition-all duration-300 mb-5 shadow-sm">
+              <FadeIn key={idx} delay={`${idx * 60}ms`}>
+                <div className="group relative p-4 md:p-5 rounded-2xl border border-slate-200/80 bg-white hover:bg-[#FAFBFC] hover:border-[#05AD98]/30 hover:shadow-lg hover:shadow-[#05AD98]/[0.05] transition-all duration-300 cursor-pointer">
+                  <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-[#05AD98]/8 flex items-center justify-center text-[#05AD98] group-hover:bg-[#05AD98] group-hover:text-white transition-all duration-300 mb-3">
                     {mod.icon}
                   </div>
-                  <h3 className="font-bold text-lg text-slate-900 mb-2">{mod.name}</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">{mod.desc}</p>
+                  <h3 className="font-bold text-sm text-slate-900 mb-0.5">{mod.name}</h3>
+                  <p className="text-[11px] md:text-xs text-slate-500 leading-relaxed">{mod.desc}</p>
                 </div>
-              </div>
+              </FadeIn>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═══════════ FEATURE 1: OPERATIONS ═══════════ */}
-      <section id="operations" className="py-24 bg-slate-50 relative overflow-hidden border-t border-slate-200/60">
+      {/* ═══════ FEATURE: OPERATIONS ═══════ */}
+      <section id="features" className="py-20 md:py-24 bg-[#FAFBFC] border-t border-slate-200/50 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row items-center gap-16">
-            <div className="flex-1 text-left relative">
-              <SwoopArrow2 className="absolute hidden lg:block w-24 h-24 right-0 -top-8 -rotate-6 opacity-80" />
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#05AD98]/10 text-[#037667] text-xs font-bold uppercase tracking-wider mb-6 border border-[#05AD98]/15">
-                <Users className="w-4 h-4" /> HR & Operations
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+            <FadeIn className="flex-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#05AD98]/8 text-[#037667] text-[11px] font-bold uppercase tracking-wider mb-5 border border-[#05AD98]/12">
+                <Users className="w-3.5 h-3.5" /> HR & Operations
               </div>
-              <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-6 tracking-tight leading-tight">
-                Align your workforce<br />with strategic objectives.
+              <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight mb-4">
+                Workforce management,<br />simplified.
               </h2>
-              <p className="text-lg text-slate-600 mb-8 leading-relaxed font-medium">
-                Streamline employee onboarding, manage precise attendance records via QR verification, and transform abstract projects into actionable Kanban workflows.
+              <p className="text-slate-500 mb-6 leading-relaxed max-w-md text-[15px]">
+                From employee onboarding to QR attendance to agile Kanban boards.
               </p>
-              <ul className="space-y-4">
+              <div className="space-y-3 mb-6">
                 {[
-                  { text: 'Role-Based Access Control matrix', sub: 'Admin, HR, PM, Employee, Accountant, Customer' },
-                  { text: 'QR Code Attendance with GPS geofencing', sub: 'Camera scan + location verification' },
-                  { text: 'Drag-and-drop Kanban with custom stages', sub: 'Agile workflow management' },
+                  'Role-based access control',
+                  'QR attendance + GPS geofencing',
+                  'Drag-and-drop Kanban boards',
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-[#05AD98] shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-slate-900 font-semibold">{item.text}</span>
-                      <span className="block text-sm text-slate-500">{item.sub}</span>
-                    </div>
-                  </li>
+                  <div key={i} className="flex items-center gap-2.5 text-sm text-slate-700 font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-[#05AD98] shrink-0" /> {item}
+                  </div>
                 ))}
-              </ul>
-            </div>
-            {/* Mockup */}
-            <div className="flex-1 relative w-full">
-              <div className="absolute inset-4 bg-[#05AD98]/5 rounded-3xl blur-xl" />
-              <div className="relative aspect-[4/3] rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden flex flex-col">
-                <div className="h-10 bg-slate-50 border-b border-slate-100 flex items-center px-4 gap-2">
-                  <div className="w-3 h-3 rounded-full bg-rose-400" />
-                  <div className="w-3 h-3 rounded-full bg-amber-400" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-400" />
-                  <span className="ml-3 text-[10px] font-semibold text-slate-400">modoo.cm / tasks</span>
+              </div>
+              {/* Arrow pointing to the mockup */}
+              <HandDrawnArrowCurve className="hidden lg:block w-36 h-20 opacity-50 ml-16" />
+            </FadeIn>
+
+            <FadeIn delay="200ms" className="flex-1 relative w-full">
+              <div className="absolute -inset-3 bg-[#05AD98]/5 rounded-3xl blur-xl" />
+              <div className="relative rounded-2xl bg-white border border-slate-200 shadow-xl overflow-hidden">
+                <div className="h-8 sm:h-9 bg-slate-50 border-b border-slate-100 flex items-center px-3 gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
+                  <span className="ml-2 text-[9px] font-medium text-slate-400">Tasks — Kanban</span>
                 </div>
-                <div className="flex-1 p-4 flex gap-3 bg-slate-50/50">
+                <div className="p-2 sm:p-3 flex gap-2 bg-slate-50/50">
                   {['To Do', 'In Progress', 'Done'].map((col, ci) => (
-                    <div key={ci} className="flex-1 bg-white border border-slate-100 rounded-xl p-3 flex flex-col gap-2.5">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ['#64748B', '#3B82F6', '#05AD98'][ci] }} />
-                        <span className="text-[11px] font-bold text-slate-700">{col}</span>
-                        <span className="text-[10px] ml-auto bg-slate-100 px-1.5 py-0.5 rounded-full font-bold text-slate-500">{[3, 2, 4][ci]}</span>
+                    <div key={ci} className="flex-1 bg-white border border-slate-100 rounded-xl p-2 flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: ['#94A3B8', '#3B82F6', '#05AD98'][ci] }} />
+                        <span className="text-[9px] sm:text-[10px] font-bold text-slate-600">{col}</span>
                       </div>
-                      {Array.from({ length: [3, 2, 4][ci] }).map((_, ti) => (
-                        <div key={ti} className="p-2.5 bg-white border border-slate-100 rounded-lg space-y-2 shadow-xs">
-                          <div className="w-full h-2.5 bg-slate-100 rounded-sm" />
-                          <div className="w-3/4 h-2 bg-slate-50 rounded-sm" />
-                          <div className="flex items-center justify-between pt-1">
-                            <div className="w-5 h-5 rounded-full bg-slate-100" />
-                            <div className="w-10 h-3 rounded-full" style={{ backgroundColor: ['#FEF3C7', '#DBEAFE', '#D1FAE5'][ci] }} />
+                      {Array.from({ length: 2 }).map((_, ti) => (
+                        <div key={ti} className="p-1.5 sm:p-2 bg-white border border-slate-100 rounded-lg shadow-xs space-y-1">
+                          <div className="w-full h-2 bg-slate-100 rounded" />
+                          <div className="w-3/4 h-1.5 bg-slate-50 rounded" />
+                          <div className="flex items-center justify-between">
+                            <div className="w-4 h-4 rounded-full bg-slate-100" />
+                            <div className="w-7 h-2 rounded-full" style={{ backgroundColor: ['#FEF3C7', '#DBEAFE', '#D1FAE5'][ci] }} />
                           </div>
                         </div>
                       ))}
@@ -319,232 +432,228 @@ export const LandingPage: React.FC = () => {
                   ))}
                 </div>
               </div>
-            </div>
+            </FadeIn>
           </div>
         </div>
       </section>
 
-      {/* ═══════════ FEATURE 2: FINANCE ═══════════ */}
-      <section className="py-24 bg-white relative overflow-hidden border-t border-slate-200/60">
+      {/* Hand-drawn arrow bridging Operations → Finance */}
+      <div className="flex justify-center -mt-2 -mb-2 relative z-10">
+        <HandDrawnArrowDown className="w-10 h-20 opacity-40" />
+      </div>
+
+      {/* ═══════ FEATURE: FINANCE ═══════ */}
+      <section className="py-20 md:py-24 bg-white border-t border-slate-200/50 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row-reverse items-center gap-16">
-            <div className="flex-1 text-left relative">
-              <SwoopArrow1 className="absolute hidden lg:block w-32 h-32 -left-12 -top-16 rotate-[20deg] opacity-80" />
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold uppercase tracking-wider mb-6 border border-amber-100">
-                <CreditCard className="w-4 h-4" /> Finance & Sales
+          <div className="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-16">
+            <FadeIn className="flex-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-[11px] font-bold uppercase tracking-wider mb-5 border border-amber-100/80">
+                <BarChart3 className="w-3.5 h-3.5" /> Finance & Sales
               </div>
-              <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-6 tracking-tight leading-tight">
-                From quote to cash,<br />in minutes not days.
+              <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight mb-4">
+                From quote to cash,<br />in minutes.
               </h2>
-              <p className="text-lg text-slate-600 mb-8 leading-relaxed font-medium">
-                Maintain a centralized customer registry. Generate professional quotations instantly, convert them to invoices, and reconcile payments through Mobile Money.
+              <p className="text-slate-500 mb-6 leading-relaxed max-w-md text-[15px]">
+                Generate quotations, convert to invoices, collect via MTN MoMo or Orange Money.
               </p>
-              <ul className="space-y-4">
+              <div className="space-y-3 mb-6">
                 {[
-                  { text: 'Unified Customer Relationship database', sub: 'Company profiles linked to user accounts' },
-                  { text: 'One-click Quote → Invoice conversion', sub: 'Automated line-item transfer' },
-                  { text: 'MTN MoMo & Orange Money processing', sub: 'Integrated NotchPay gateway' },
+                  'Customer CRM & account linking',
+                  'One-click Quote → Invoice',
+                  'Mobile Money & card payments',
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-[#05AD98] shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-slate-900 font-semibold">{item.text}</span>
-                      <span className="block text-sm text-slate-500">{item.sub}</span>
-                    </div>
-                  </li>
+                  <div key={i} className="flex items-center gap-2.5 text-sm text-slate-700 font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-[#05AD98] shrink-0" /> {item}
+                  </div>
                 ))}
-              </ul>
-            </div>
-            {/* Mockup */}
-            <div className="flex-1 relative w-full">
-              <div className="absolute inset-4 bg-amber-100/20 rounded-3xl blur-xl" />
-              <div className="relative aspect-[4/3] rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden flex flex-col">
-                <div className="h-10 bg-slate-50 border-b border-slate-100 flex items-center px-4 gap-2">
-                  <div className="w-3 h-3 rounded-full bg-rose-400" />
-                  <div className="w-3 h-3 rounded-full bg-amber-400" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-400" />
-                  <span className="ml-3 text-[10px] font-semibold text-slate-400">modoo.cm / invoices</span>
+              </div>
+              {/* Arrow pointing back to the mockup */}
+              <HandDrawnArrowCurve className="hidden lg:block w-36 h-20 opacity-50 ml-16 -scale-x-100" />
+            </FadeIn>
+
+            <FadeIn delay="200ms" className="flex-1 relative w-full">
+              <div className="absolute -inset-3 bg-amber-50/40 rounded-3xl blur-xl" />
+              <div className="relative rounded-2xl bg-white border border-slate-200 shadow-xl overflow-hidden">
+                <div className="h-8 sm:h-9 bg-slate-50 border-b border-slate-100 flex items-center px-3 gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
+                  <span className="ml-2 text-[9px] font-medium text-slate-400">Invoices — Overview</span>
                 </div>
-                <div className="flex-1 p-4 space-y-4">
-                  {/* Chart */}
-                  <div className="h-32 bg-slate-50 rounded-xl border border-slate-100 flex items-end px-5 pb-3 gap-3">
-                    {[35, 55, 40, 75, 50, 90, 60, 85].map((h, i) => (
-                      <div key={i} className="flex-1 rounded-t-md" style={{ height: `${h}%`, backgroundColor: i === 5 ? '#05AD98' : '#05AD9840' }} />
+                <div className="p-3 sm:p-4 space-y-3">
+                  <div className="h-24 sm:h-28 bg-slate-50 rounded-xl border border-slate-100 flex items-end px-3 sm:px-4 pb-2 gap-1.5 sm:gap-2">
+                    {[30, 50, 35, 70, 45, 85, 55, 75].map((h, i) => (
+                      <div key={i} className="flex-1 rounded-t" style={{ height: `${h}%`, backgroundColor: i === 5 ? '#05AD98' : '#E2E8F0' }} />
                     ))}
                   </div>
-                  {/* Table rows */}
-                  <div className="space-y-2.5">
+                  <div className="space-y-2">
                     {[
-                      { name: 'TechCorp Cameroon', amount: '₣ 2,450,000', status: 'Paid', color: 'bg-emerald-50 text-emerald-700' },
-                      { name: 'Douala Logistics', amount: '₣ 890,000', status: 'Pending', color: 'bg-amber-50 text-amber-700' },
-                      { name: 'MediaPro Agency', amount: '₣ 1,200,000', status: 'Paid', color: 'bg-emerald-50 text-emerald-700' },
-                    ].map((row, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-white">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-[10px] font-bold text-[#05AD98]">
-                            {row.name.charAt(0)}
+                      { n: 'TechCorp Cameroon', a: '₣ 2,450,000', s: 'Paid', sc: 'bg-emerald-50 text-emerald-700' },
+                      { n: 'Douala Logistics', a: '₣ 890,000', s: 'Pending', sc: 'bg-amber-50 text-amber-700' },
+                      { n: 'MediaPro Agency', a: '₣ 1,200,000', s: 'Paid', sc: 'bg-emerald-50 text-emerald-700' },
+                    ].map((r, i) => (
+                      <div key={i} className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg border border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 sm:w-7 sm:h-7 bg-slate-100 rounded-full flex items-center justify-center text-[8px] sm:text-[9px] font-bold text-[#05AD98]">
+                            {r.n.charAt(0)}
                           </div>
                           <div>
-                            <div className="text-xs font-semibold text-slate-900">{row.name}</div>
-                            <div className="text-[10px] text-slate-500">{row.amount}</div>
+                            <div className="text-[10px] sm:text-[11px] font-semibold text-slate-800">{r.n}</div>
+                            <div className="text-[8px] sm:text-[9px] text-slate-400">{r.a}</div>
                           </div>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${row.color}`}>
-                          {row.status}
-                        </span>
+                        <span className={`text-[8px] sm:text-[9px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full ${r.sc}`}>{r.s}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
-            </div>
+            </FadeIn>
           </div>
         </div>
       </section>
 
-      {/* ═══════════ AI ASSISTANT ═══════════ */}
-      <section id="ai" className="py-24 bg-slate-900 text-white relative overflow-hidden">
-        {/* Removed colorful gradients, kept it dark flat professional */}
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="flex flex-col lg:flex-row items-center gap-16">
-            <div className="flex-1 text-center lg:text-left">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/5 mb-6 border border-white/10 shadow-2xl">
-                <Bot className="w-7 h-7 text-[#05AD98]" />
+      {/* ═══════ AI ASSISTANT ═══════ */}
+      <section id="ai" className="py-20 md:py-24 bg-slate-900 text-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+            <FadeIn className="flex-1 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 text-[#6ECFBF] text-[11px] font-bold uppercase tracking-wider mb-5 border border-white/10">
+                <Sparkles className="w-3.5 h-3.5" /> Built-in AI
               </div>
-              <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight leading-tight">
-                Meet your AI<br />Business Assistant.
+              <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tight leading-tight">
+                Your AI business<br />assistant.
               </h2>
-              <p className="text-lg text-slate-300 mb-8 leading-relaxed font-medium max-w-lg">
-                Execute complex operations conversationally. Authorize transactions, query employee attendance, and generate business insights using natural language.
+              <p className="text-slate-400 mb-8 leading-relaxed max-w-md lg:mx-0 mx-auto text-[15px]">
+                Query data, generate insights, and automate workflows through natural language.
               </p>
               <Link to="/register">
-                <Button variant="primary" size="lg" className="bg-[#05AD98] hover:bg-[#049381] border-none px-8 shadow-xl shadow-[#05AD98]/30 hover:-translate-y-1 transition-all">
+                <Button variant="primary" size="lg" className="bg-[#05AD98] hover:bg-[#049381] border-none px-8 shadow-xl shadow-[#05AD98]/20">
                   Try AI Assistant <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
-            </div>
-            {/* Chat mockup */}
-            <div className="flex-1 w-full max-w-md">
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 p-5 space-y-4 shadow-2xl">
-                <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+            </FadeIn>
+
+            <FadeIn delay="200ms" className="flex-1 w-full max-w-sm md:max-w-md">
+              <div className="bg-white/[0.05] rounded-2xl border border-white/[0.08] p-4 sm:p-5 space-y-3 sm:space-y-4">
+                <div className="flex items-center gap-3 pb-3 border-b border-white/[0.06]">
                   <div className="w-8 h-8 rounded-full bg-[#05AD98] flex items-center justify-center">
                     <Bot className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-white">Modoo AI</div>
-                    <div className="text-[10px] text-emerald-300 font-medium">● Online</div>
+                    <div className="text-sm font-bold">Modoo AI</div>
+                    <div className="text-[10px] text-emerald-400 font-medium">● Online</div>
                   </div>
                 </div>
-                {/* Messages */}
                 <div className="space-y-3">
-                  <div className="flex gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-[#05AD98]/20 shrink-0 flex items-center justify-center">
-                      <Bot className="w-3.5 h-3.5 text-[#05AD98]" />
+                  <div className="flex gap-2">
+                    <div className="w-6 h-6 rounded-full bg-[#05AD98]/20 shrink-0 flex items-center justify-center mt-0.5">
+                      <Bot className="w-3 h-3 text-[#05AD98]" />
                     </div>
-                    <div className="bg-white/10 rounded-xl rounded-tl-sm px-4 py-2.5 text-sm text-slate-200 max-w-[85%]">
-                      Good morning! How can I help you today?
+                    <div className="bg-white/[0.06] rounded-xl rounded-tl-sm px-3 py-2 text-[13px] text-slate-300">
+                      How can I help you today?
                     </div>
                   </div>
-                  <div className="flex gap-2.5 justify-end">
-                    <div className="bg-[#05AD98] rounded-xl rounded-tr-sm px-4 py-2.5 text-sm text-white max-w-[85%]">
+                  <div className="flex gap-2 justify-end">
+                    <div className="bg-[#05AD98] rounded-xl rounded-tr-sm px-3 py-2 text-[13px] text-white">
                       How many employees were late this week?
                     </div>
                   </div>
-                  <div className="flex gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-[#05AD98]/20 shrink-0 flex items-center justify-center">
-                      <Bot className="w-3.5 h-3.5 text-[#05AD98]" />
+                  <div className="flex gap-2">
+                    <div className="w-6 h-6 rounded-full bg-[#05AD98]/20 shrink-0 flex items-center justify-center mt-0.5">
+                      <Bot className="w-3 h-3 text-[#05AD98]" />
                     </div>
-                    <div className="bg-white/10 rounded-xl rounded-tl-sm px-4 py-2.5 text-sm text-slate-200 max-w-[85%]">
-                      This week, <strong className="text-white">3 employees</strong> were marked as late: David M. (Mon), Carine E. (Tue), and Junior F. (Thu). Would you like me to send them a reminder?
+                    <div className="bg-white/[0.06] rounded-xl rounded-tl-sm px-3 py-2 text-[13px] text-slate-300">
+                      <strong className="text-white">3 employees</strong> were late. Want me to send reminders?
                     </div>
                   </div>
                 </div>
-                {/* Input */}
-                <div className="flex items-center gap-2 pt-2 border-t border-white/10">
-                  <div className="flex-1 h-9 bg-white/5 rounded-lg border border-white/10" />
-                  <div className="w-9 h-9 rounded-lg bg-[#05AD98] flex items-center justify-center shadow-lg">
-                    <ArrowRight className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 pt-2 border-t border-white/[0.06]">
+                  <div className="flex-1 h-8 bg-white/[0.04] rounded-lg border border-white/[0.06] px-3 text-[11px] text-slate-500 flex items-center">Ask anything...</div>
+                  <div className="w-8 h-8 rounded-lg bg-[#05AD98] flex items-center justify-center shrink-0">
+                    <ArrowRight className="w-3.5 h-3.5 text-white" />
                   </div>
                 </div>
               </div>
-            </div>
+            </FadeIn>
           </div>
         </div>
       </section>
 
-      {/* ═══════════ TESTIMONIAL / TRUST ═══════════ */}
-      <section className="py-20 bg-slate-50 border-t border-slate-200/60">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="flex items-center justify-center gap-1 mb-6">
-            {[1, 2, 3, 4, 5].map(i => (
-              <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />
-            ))}
-          </div>
-          <blockquote className="text-xl md:text-2xl font-semibold text-slate-800 leading-relaxed mb-6 italic">
-            "Modoo transformed how we manage our 50+ employees across Douala and Yaoundé. The QR attendance system alone saved us 15 hours per month in manual tracking."
-          </blockquote>
-          <div className="flex items-center justify-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#05AD98] flex items-center justify-center text-white font-bold text-sm">
-              ME
+      {/* ═══════ TESTIMONIAL ═══════ */}
+      <section className="py-16 md:py-20 bg-[#FAFBFC] border-t border-slate-200/40">
+        <FadeIn>
+          <div className="max-w-3xl mx-auto px-4 text-center">
+            <div className="flex items-center justify-center gap-0.5 mb-5">
+              {[1, 2, 3, 4, 5].map(i => (
+                <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
+              ))}
             </div>
-            <div className="text-left">
-              <div className="text-sm font-bold text-slate-900">Marc Ekwalla</div>
-              <div className="text-xs text-slate-500">CEO, TechCorp Cameroon</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════ CTA ═══════════ */}
-      <section className="py-20 bg-gradient-to-br from-[#05AD98] to-[#038577] text-white text-center relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <h2 className="text-3xl md:text-4xl font-black mb-4 tracking-tight">Ready to get started?</h2>
-          <p className="text-lg text-white/80 mb-8 font-medium">
-            Join thousands of companies already using Modoo to streamline their operations.
-          </p>
-          <Link to="/register">
-            <Button variant="outline" size="lg" className="bg-white text-[#05AD98] border-white hover:bg-white/90 px-8 font-bold shadow-xl hover:-translate-y-0.5 transition-all">
-              Create your free account <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </Link>
-        </div>
-      </section>
-
-      {/* ═══════════ FOOTER ═══════════ */}
-      <footer className="bg-white border-t border-slate-200 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#05AD98] to-[#038577] flex items-center justify-center shadow-sm">
-                <span className="text-white font-bold text-xs leading-none">M</span>
+            <blockquote className="text-base sm:text-lg md:text-xl font-semibold text-slate-800 leading-relaxed mb-5 px-4">
+              "Modoo transformed how we manage our 50+ employees across Douala and Yaoundé. The QR attendance alone saved us 15 hours per month."
+            </blockquote>
+            <div className="flex items-center justify-center gap-2.5">
+              <div className="w-9 h-9 rounded-full bg-[#05AD98] flex items-center justify-center text-white font-bold text-xs">
+                ME
               </div>
-              <span className="font-black text-slate-900 tracking-tight">Modoo ERP</span>
+              <div className="text-left">
+                <div className="text-sm font-bold text-slate-900">Marc Ekwalla</div>
+                <div className="text-xs text-slate-500">CEO, TechCorp Cameroon</div>
+              </div>
             </div>
-            <div className="flex gap-8 text-sm font-semibold text-slate-500">
-              <Link to="#" className="hover:text-[#05AD98] transition-colors">Privacy Policy</Link>
-              <Link to="#" className="hover:text-[#05AD98] transition-colors">Terms of Service</Link>
-              <Link to="#" className="hover:text-[#05AD98] transition-colors">Developer API</Link>
-            </div>
-            <p className="text-sm text-slate-400 font-medium">
-              © {new Date().getFullYear()} Modoo Enterprises. All rights reserved.
+          </div>
+        </FadeIn>
+      </section>
+
+      {/* ═══════ CTA ═══════ */}
+      <section className="py-16 md:py-20 bg-[#05AD98] text-white text-center relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10" style={{
+          backgroundImage: 'radial-gradient(circle at 30% 50%, white 0%, transparent 50%)',
+        }} />
+        <div className="max-w-2xl mx-auto px-4 relative z-10">
+          <FadeIn>
+            <ModooLogo size={48} className="mx-auto mb-6 opacity-80" />
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-3 tracking-tight">Ready to streamline your business?</h2>
+            <p className="text-white/70 mb-8 font-medium text-sm sm:text-base">
+              Get started in minutes. No credit card required.
             </p>
+            <Link to="/register">
+              <Button variant="outline" size="lg" className="bg-white text-[#05AD98] border-white hover:bg-white/90 px-8 font-bold shadow-xl hover:-translate-y-0.5 transition-all">
+                Create free account <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </Link>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ═══════ FOOTER ═══════ */}
+      <footer className="bg-white border-t border-slate-200/60 py-8 sm:py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-2">
+            <ModooLogo size={24} />
+            <span className="font-bold text-sm text-slate-800 tracking-tight">modoo</span>
           </div>
+          <div className="flex gap-6 text-xs font-medium text-slate-400">
+            <Link to="#" className="hover:text-slate-600 transition-colors">Privacy</Link>
+            <Link to="#" className="hover:text-slate-600 transition-colors">Terms</Link>
+            <Link to="#" className="hover:text-slate-600 transition-colors">API</Link>
+          </div>
+          <p className="text-xs text-slate-400">
+            © {new Date().getFullYear()} Modoo Enterprises
+          </p>
         </div>
       </footer>
-    </div>
-  );
-};
 
-/* ───────── Stat Counter Sub-component ───────── */
-const StatCounter: React.FC<{ value: number; suffix: string; label: string; decimal?: boolean }> = ({ value, suffix, label, decimal }) => {
-  const count = useCounter(decimal ? Math.floor(value) : value);
-  return (
-    <div>
-      <div className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-        {decimal ? `${count}.${String(value).split('.')[1] || '0'}` : count.toLocaleString()}{suffix}
-      </div>
-      <div className="text-sm text-slate-500 font-semibold mt-1">{label}</div>
+      {/* ═══════ MARQUEE ANIMATION KEYFRAMES ═══════ */}
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          animation: marquee 25s linear infinite;
+        }
+      `}</style>
     </div>
   );
 };
