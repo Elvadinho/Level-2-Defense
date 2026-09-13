@@ -7,6 +7,7 @@ export interface AlertProps {
   message: string;
   onClose?: () => void;
   className?: string;
+  isToast?: boolean;
 }
 
 /**
@@ -18,6 +19,7 @@ export const Alert: React.FC<AlertProps> = ({
   message,
   onClose,
   className = '',
+  isToast = true,
 }) => {
   const configs = {
     success: {
@@ -49,15 +51,19 @@ export const Alert: React.FC<AlertProps> = ({
     }
   }, [onClose]);
 
+  const baseClasses = isToast
+    ? `fixed top-16 right-4 z-[100] shadow-lg max-w-sm w-auto min-w-[300px] flex items-start gap-2.5 p-3 rounded-lg border text-xs sm:text-sm transition-all animate-fadeIn ${config.bg} ${className}`
+    : `flex items-start gap-3 p-3.5 rounded-lg border text-sm transition-all animate-fadeIn ${config.bg} ${className}`;
+
   return (
     <div
-      className={`flex items-start gap-3 p-3.5 rounded-lg border text-sm transition-all animate-fadeIn ${config.bg} ${className}`}
+      className={baseClasses}
       role="alert"
     >
       {config.icon}
       <div className="flex-1 min-w-0">
         {title && <h5 className="font-semibold text-sm mb-0.5">{title}</h5>}
-        <p className="text-xs leading-relaxed opacity-90">{message}</p>
+        <p className="leading-relaxed opacity-90">{message}</p>
       </div>
       {onClose && (
         <button

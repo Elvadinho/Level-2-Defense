@@ -229,6 +229,8 @@ export const AttendancePage: React.FC = () => {
       const message = err instanceof Error ? err.message : 'Unknown error';
       if (message.includes('NotAllowed') || message.includes('Permission')) {
         setScannerMessage('Camera permission was denied. Please allow camera access in your browser settings and try again.');
+      } else if (!window.isSecureContext) {
+        setScannerMessage('Camera access requires a secure HTTPS connection or localhost. Please ensure you are not testing over plain HTTP on your network.');
       } else {
         setScannerMessage(`Could not access camera: ${message}`);
       }
@@ -239,8 +241,9 @@ export const AttendancePage: React.FC = () => {
     if (scannerRef.current) {
       try {
         await scannerRef.current.stop();
+        scannerRef.current.clear();
       } catch {
-        // Already stopped
+        // Already stopped or cleared
       }
       scannerRef.current = null;
     }

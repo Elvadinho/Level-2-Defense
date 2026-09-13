@@ -207,7 +207,7 @@ export const AIAssistantPage: React.FC = () => {
         </div>
       </div>
 
-      {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
+      {error && <Alert type="error" message={error} onClose={() => setError(null)} isToast={false} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* Main Conversation Window */}

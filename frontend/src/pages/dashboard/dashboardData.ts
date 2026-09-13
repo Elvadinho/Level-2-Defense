@@ -73,9 +73,30 @@ export interface DashboardPanel {
   link?: { label: string; path: string };
 }
 
+export interface ChartSeriesData {
+  name: string;
+  value: number;
+  secondaryValue?: number;
+  fill?: string;
+}
+
+export interface DashboardChart {
+  id: string;
+  type: 'bar' | 'line' | 'pie' | 'area' | 'composed';
+  title: string;
+  data: ChartSeriesData[];
+  primaryDataKey: string;
+  secondaryDataKey?: string;
+  primaryColor: string;
+  secondaryColor?: string;
+  valuePrefix?: string;
+  valueSuffix?: string;
+}
+
 export interface RoleDashboard {
   subtitle: string;
   kpis: DashboardKpi[];
+  charts: DashboardChart[];
   panels: DashboardPanel[];
 }
 
@@ -261,6 +282,33 @@ export const buildRoleDashboard = (user: User | null): RoleDashboard => {
             bg: 'bg-emerald-50',
           },
         ],
+        charts: [
+          {
+            id: 'revenue-overview',
+            type: 'bar',
+            title: 'Revenue & Receivables',
+            data: [
+              { name: 'Collected', value: settledAmount, fill: '#059669' },
+              { name: 'Outstanding', value: outstandingAmount, fill: '#d97706' },
+              { name: 'Overdue', value: unpaidInvoices.filter(i => i.status === 'overdue').reduce((sum, i) => sum + toNumber(i.total_amount), 0), fill: '#e11d48' },
+            ],
+            primaryDataKey: 'value',
+            primaryColor: '#05AD98',
+            valueSuffix: ' XAF',
+          },
+          {
+            id: 'workload-distribution',
+            type: 'pie',
+            title: 'Task Status Distribution',
+            data: [
+              { name: 'Done', value: doneTasks.length, fill: '#059669' },
+              { name: 'In Progress', value: openTasks.filter(t => t.status === 'in_progress').length, fill: '#3b82f6' },
+              { name: 'To Do', value: openTasks.filter(t => t.status === 'todo').length, fill: '#94a3b8' },
+            ],
+            primaryDataKey: 'value',
+            primaryColor: '#05AD98',
+          }
+        ],
         panels: [
           {
             id: 'attention',
@@ -366,6 +414,31 @@ export const buildRoleDashboard = (user: User | null): RoleDashboard => {
             bg: 'bg-emerald-50',
           },
         ],
+        charts: [
+          {
+            id: 'headcount-by-dept',
+            type: 'pie',
+            title: 'Headcount by Department',
+            data: MOCK_DEPARTMENTS.map(d => ({
+              name: d.name,
+              value: MOCK_EMPLOYEES.filter(e => e.department_id === d.id).length,
+            })),
+            primaryDataKey: 'value',
+            primaryColor: '#05AD98',
+          },
+          {
+            id: 'attendance-today',
+            type: 'bar',
+            title: 'Attendance Today',
+            data: [
+              { name: 'Present', value: presenceToday.filter(a => a.status === 'present').length, fill: '#059669' },
+              { name: 'Late', value: presenceToday.filter(a => a.status === 'late').length, fill: '#d97706' },
+              { name: 'Absent', value: MOCK_EMPLOYEES.length - presenceToday.length, fill: '#e11d48' },
+            ],
+            primaryDataKey: 'value',
+            primaryColor: '#05AD98',
+          }
+        ],
         panels: [
           {
             id: 'attendance-log',
@@ -445,6 +518,31 @@ export const buildRoleDashboard = (user: User | null): RoleDashboard => {
             color: 'text-emerald-600',
             bg: 'bg-emerald-50',
           },
+        ],
+        charts: [
+          {
+            id: 'task-pipeline',
+            type: 'bar',
+            title: 'Task Pipeline',
+            data: INITIAL_KANBAN_STAGES.map(stage => ({
+              name: stage.label,
+              value: tasks.filter(t => t.status === stage.id).length,
+            })),
+            primaryDataKey: 'value',
+            primaryColor: '#05AD98',
+          },
+          {
+            id: 'project-status',
+            type: 'pie',
+            title: 'Project Status',
+            data: [
+              { name: 'Active', value: projects.filter(p => p.status === 'active' || p.status === 'in_progress').length, fill: '#059669' },
+              { name: 'Completed', value: projects.filter(p => p.status === 'completed').length, fill: '#3b82f6' },
+              { name: 'On Hold', value: projects.filter(p => p.status === 'on_hold').length, fill: '#f59e0b' },
+            ],
+            primaryDataKey: 'value',
+            primaryColor: '#05AD98',
+          }
         ],
         panels: [
           {
@@ -546,6 +644,33 @@ export const buildRoleDashboard = (user: User | null): RoleDashboard => {
             color: 'text-blue-600',
             bg: 'bg-blue-50',
           },
+        ],
+        charts: [
+          {
+            id: 'cash-flow',
+            type: 'bar',
+            title: 'Cash Flow Overview',
+            data: [
+              { name: 'Collected', value: settledAmount, fill: '#059669' },
+              { name: 'Pending', value: pendingPayments.reduce((sum, p) => sum + toNumber(p.amount), 0), fill: '#f59e0b' },
+              { name: 'Overdue', value: overdueAmount, fill: '#e11d48' },
+            ],
+            primaryDataKey: 'value',
+            primaryColor: '#05AD98',
+            valueSuffix: ' XAF',
+          },
+          {
+            id: 'invoice-status',
+            type: 'pie',
+            title: 'Invoice Status',
+            data: [
+              { name: 'Paid', value: invoices.filter(i => i.status === 'paid').length, fill: '#059669' },
+              { name: 'Sent', value: invoices.filter(i => i.status === 'sent').length, fill: '#3b82f6' },
+              { name: 'Overdue', value: overdueInvoices.length, fill: '#e11d48' },
+            ],
+            primaryDataKey: 'value',
+            primaryColor: '#05AD98',
+          }
         ],
         panels: [
           {
@@ -649,6 +774,31 @@ export const buildRoleDashboard = (user: User | null): RoleDashboard => {
             bg: 'bg-blue-50',
           },
         ],
+        charts: [
+          {
+            id: 'billing-overview',
+            type: 'bar',
+            title: 'Billing Overview',
+            data: [
+              { name: 'Paid', value: settledAmount, fill: '#059669' },
+              { name: 'Due', value: outstandingAmount, fill: '#d97706' },
+            ],
+            primaryDataKey: 'value',
+            primaryColor: '#05AD98',
+            valueSuffix: ' XAF',
+          },
+          {
+            id: 'document-status',
+            type: 'pie',
+            title: 'Document Status',
+            data: [
+              { name: 'Invoices', value: invoices.length, fill: '#3b82f6' },
+              { name: 'Quotations', value: quotations.length, fill: '#05AD98' },
+            ],
+            primaryDataKey: 'value',
+            primaryColor: '#05AD98',
+          }
+        ],
         panels: [
           {
             id: 'my-invoices',
@@ -751,6 +901,32 @@ export const buildRoleDashboard = (user: User | null): RoleDashboard => {
             color: 'text-blue-600',
             bg: 'bg-blue-50',
           },
+        ],
+        charts: [
+          {
+            id: 'my-task-status',
+            type: 'pie',
+            title: 'My Task Status',
+            data: [
+              { name: 'Done', value: doneTasks.length, fill: '#059669' },
+              { name: 'In Progress', value: openTasks.filter(t => t.status === 'in_progress').length, fill: '#3b82f6' },
+              { name: 'To Do', value: openTasks.filter(t => t.status === 'todo').length, fill: '#94a3b8' },
+            ],
+            primaryDataKey: 'value',
+            primaryColor: '#05AD98',
+          },
+          {
+            id: 'attendance-history',
+            type: 'bar',
+            title: 'Attendance (Last 5 Days)',
+            data: attendance.slice().sort((a, b) => a.date.localeCompare(b.date)).slice(-5).map(a => ({
+              name: a.date.substring(5),
+              value: a.status === 'present' ? 8 : a.status === 'late' ? 6 : 0,
+            })),
+            primaryDataKey: 'value',
+            primaryColor: '#05AD98',
+            valueSuffix: ' hrs',
+          }
         ],
         panels: [
           {

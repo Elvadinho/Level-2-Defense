@@ -146,6 +146,7 @@ export const SignupPage: React.FC = () => {
                 type="error"
                 message={errorMessage}
                 onClose={() => setErrorMessage(null)}
+                isToast={false}
               />
             </div>
           )}

@@ -5,6 +5,7 @@ import { getNavItemsForRole } from '../../config/navigation';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { buildRoleDashboard, QUICK_ACTION_MODULES } from './dashboardData';
+import { AnalyticsCharts } from '../../components/dashboard/AnalyticsCharts';
 import { ArrowUpRight, ArrowRight, Inbox } from 'lucide-react';
 
 /**
@@ -102,6 +103,9 @@ export const DashboardPage: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Analytics Charts */}
+      {dashboard.charts && <AnalyticsCharts charts={dashboard.charts} />}
 
       {/* Role-specific operational panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
