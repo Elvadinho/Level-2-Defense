@@ -87,6 +87,7 @@ export interface Payment {
   amount: number | string;
   currency?: string;
   method: PaymentMethod;
+  channel?: 'cm.orange' | 'cm.mtn' | 'cm.card' | string | null;
   status: PaymentStatus;
   phone?: string;
   email?: string;
@@ -134,11 +135,6 @@ export interface CreateInvoiceData {
 
 export interface InitiatePaymentData {
   invoice_id?: number;
-  customer_id?: number;
-  amount: number;
-  currency?: string;
-  method: 'orange_money' | 'mtn_momo' | 'card' | 'cm.card' | string;
+  channel: 'cm.orange' | 'cm.mtn' | 'cm.card';
   phone?: string;
-  email?: string;
-  description?: string;
 }

@@ -45,8 +45,8 @@ const DEMO_USERS: Record<UserRole, User> = {
   },
   customer: {
     id: 10,
-    name: 'TechCorp Cameroon (Customer)',
-    email: 'procurement@techcorp.cm',
+    name: 'PixelForge Studio (Customer)',
+    email: 'projects@pixelforge.cm',
     role: 'customer',
     created_at: '2026-01-20T09:00:00Z',
   },

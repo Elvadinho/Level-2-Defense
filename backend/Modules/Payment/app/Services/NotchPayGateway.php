@@ -87,7 +87,7 @@ class NotchPayGateway implements PaymentGatewayInterface
             'Authorization' => $this->publicKey,
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
-        ])->put("{$this->baseUrl}/payments/{$reference}", [
+        ])->post("{$this->baseUrl}/payments/{$reference}", [
                     'channel' => $channel,
                     'data' => [
                         'phone' => $this->formatPhone($phone) ?? $phone,

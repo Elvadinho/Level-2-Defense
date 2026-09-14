@@ -8,6 +8,7 @@ use Modules\Payment\Contracts\PaymentGatewayInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Notification\Services\NotificationService;
 
 class PaymentService
 {
@@ -89,6 +90,7 @@ class PaymentService
             // NotchPay's own transaction reference (e.g. tr.xxx) — NOT our merchant PAY-xxx.
             // Process/verify URLs must use this id; using the merchant reference returns 404.
             $notchpayRef = $initResponse['transaction']['reference']
+                ?? $initResponse['data']['reference']
                 ?? $initResponse['reference']
                 ?? null;
 
@@ -110,7 +112,10 @@ class PaymentService
             }
 
             $payment = $payment->load('invoice', 'customer');
-            $payment->setAttribute('authorization_url', $initResponse['authorization_url'] ?? null);
+            $payment->setAttribute(
+                'authorization_url',
+                $initResponse['authorization_url'] ?? $initResponse['data']['authorization_url'] ?? null
+            );
 
             return $payment;
         });
@@ -127,6 +132,7 @@ class PaymentService
         $response = $this->gateway->verifyPayment($notchpayRef);
         $status = $response['transaction']['status'] ?? 'pending';
 
+        $wasComplete = $payment->status === 'complete';
         $payment->update([
             'status' => $status,
             'paid_at' => $status === 'complete' ? now() : null,
@@ -135,6 +141,9 @@ class PaymentService
         // If payment is complete, update the invoice status too
         if ($status === 'complete') {
             $payment->invoice->update(['status' => 'paid']);
+            if (!$wasComplete) {
+                $this->sendCompletionNotification($payment);
+            }
         }
 
         return $payment;
@@ -171,6 +180,7 @@ class PaymentService
             return;
         }
 
+        $wasComplete = $payment->status === 'complete';
         $payment->update([
             'status' => $status,
             'paid_at' => $status === 'complete' ? now() : null,
@@ -180,6 +190,41 @@ class PaymentService
         // Auto-update the invoice if payment succeeds
         if ($status === 'complete') {
             $payment->invoice->update(['status' => 'paid']);
+            if (!$wasComplete) {
+                $this->sendCompletionNotification($payment);
+            }
         }
+    }
+
+    public function getForCustomer(int $customerId): Collection
+    {
+        return Payment::with('invoice', 'customer')
+            ->where('customer_id', $customerId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    private function sendCompletionNotification(Payment $payment): void
+    {
+        $payment->loadMissing('invoice.customer.user');
+        $customerUser = $payment->invoice?->customer?->user;
+
+        if (!$customerUser) {
+            return;
+        }
+
+        app(NotificationService::class)->send(
+            $customerUser,
+            'payment_completed',
+            'Payment received',
+            "Your payment of {$payment->amount} {$payment->currency} for invoice {$payment->invoice->invoice_number} was received successfully.",
+            [
+                'module' => 'payments',
+                'action_url' => '/payments',
+                'payment_id' => $payment->id,
+                'invoice_id' => $payment->invoice_id,
+            ],
+            'both'
+        );
     }
 }

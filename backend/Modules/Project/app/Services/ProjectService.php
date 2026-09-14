@@ -9,7 +9,9 @@ class ProjectService
 {
   public function getAll(): Collection
   {
-    return Project::with(['manager.user', 'members.user'])->get();
+    return Project::with(['manager.user', 'members.user'])
+      ->withCount('tasks')
+      ->get();
   }
 
   public function create(array $data): Project

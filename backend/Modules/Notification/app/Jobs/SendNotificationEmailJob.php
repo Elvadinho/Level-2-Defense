@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Modules\Notification\Models\Notification;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class SendNotificationEmailJob implements ShouldQueue
 {
@@ -19,20 +19,11 @@ class SendNotificationEmailJob implements ShouldQueue
     {
         // Minimal safe implementation: attempt to send if mail config exists
         try {
-            if (config('mail.default')) {
-                // Prefer a Mailable if available
-                if (class_exists('\Modules\Notification\Mail\NotificationMail')) {
-                    \Illuminate\Support\Facades\Mail::to($this->notification->user->email)
-                        ->queue(new \Modules\Notification\Mail\NotificationMail($this->notification));
-                } else {
-                    // Fallback: log the intended email
-                    Log::info('SendNotificationEmailJob: would send email', [
-                        'to' => $this->notification->user->email,
-                        'title' => $this->notification->title,
-                        'body' => $this->notification->body,
-                    ]);
-                }
-
+            if (config('mail.default') && $this->notification->user?->email) {
+                Mail::raw($this->notification->body, function ($message) {
+                    $message->to($this->notification->user->email)
+                        ->subject($this->notification->title);
+                });
                 $this->notification->update(['sent_at' => now()]);
             }
         } catch (\Throwable $e) {

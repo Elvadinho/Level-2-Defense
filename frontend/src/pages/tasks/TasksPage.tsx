@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { taskService } from '../../services/taskService';
 import { projectService } from '../../services/projectService';
@@ -31,6 +32,7 @@ import {
 
 export const TasksPage: React.FC = () => {
   const { user, hasRole } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const canManageStages = hasRole(['admin', 'project_manager', 'hr_manager']);
 
   const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
@@ -38,7 +40,10 @@ export const TasksPage: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>(MOCK_EMPLOYEES);
   const [stages, setStages] = useState<CustomKanbanStage[]>(INITIAL_KANBAN_STAGES);
 
-  const [selectedProjectId, setSelectedProjectId] = useState<number | 'all'>('all');
+  const projectFromUrl = Number(searchParams.get('project'));
+  const [selectedProjectId, setSelectedProjectId] = useState<number | 'all'>(
+    Number.isInteger(projectFromUrl) && projectFromUrl > 0 ? projectFromUrl : 'all'
+  );
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -95,17 +100,16 @@ export const TasksPage: React.FC = () => {
       setProjects(resolvedProjects);
       setEmployees(resolvedEmployees);
 
-      const targetProjId = selectedProjectId === 'all' ? resolvedProjects[0]?.id : selectedProjectId;
-      if (targetProjId) {
-        const taskData = await taskService.getTasksByProject(targetProjId).catch(() => []);
-        if (Array.isArray(taskData) && taskData.length > 0) {
-          setTasks(taskData);
-        } else {
-          // If backend returns empty for this project, filter mock data or keep rich dataset
-          const filteredMocks = MOCK_TASKS.filter((t) => t.project_id === targetProjId || selectedProjectId === 'all');
-          setTasks(filteredMocks.length > 0 ? filteredMocks : MOCK_TASKS);
-        }
-        setFormData((prev) => ({ ...prev, project_id: targetProjId }));
+      const projectIds = selectedProjectId === 'all'
+        ? resolvedProjects.map((project) => project.id)
+        : [selectedProjectId];
+      const taskGroups = await Promise.all(projectIds.map((projectId) => taskService.getTasksByProject(projectId)));
+      setTasks(taskGroups.flat().filter((task, index, allTasks) => allTasks.findIndex((item) => item.id === task.id) === index));
+
+      if (selectedProjectId === 'all' && resolvedProjects[0]) {
+        setFormData((prev) => ({ ...prev, project_id: resolvedProjects[0].id }));
+      } else if (typeof selectedProjectId === 'number') {
+        setFormData((prev) => ({ ...prev, project_id: selectedProjectId }));
       }
     } catch {
       // Fallback cleanly to mock data without breaking UI
@@ -121,27 +125,17 @@ export const TasksPage: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    const nextProjectId = Number(searchParams.get('project'));
+    const resolvedProjectId = Number.isInteger(nextProjectId) && nextProjectId > 0 ? nextProjectId : 'all';
+    if (resolvedProjectId !== selectedProjectId) {
+      setSelectedProjectId(resolvedProjectId);
+    }
+  }, [searchParams, selectedProjectId]);
+
   const handleProjectChange = async (projId: number | 'all') => {
     setSelectedProjectId(projId);
-    if (projId !== 'all') {
-      setIsLoading(true);
-      try {
-        const data = await taskService.getTasksByProject(projId);
-        if (Array.isArray(data) && data.length > 0) {
-          setTasks(data);
-        } else {
-          const matching = MOCK_TASKS.filter((t) => t.project_id === projId);
-          setTasks(matching.length > 0 ? matching : MOCK_TASKS);
-        }
-      } catch {
-        const matching = MOCK_TASKS.filter((t) => t.project_id === projId);
-        setTasks(matching.length > 0 ? matching : MOCK_TASKS);
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      setTasks(MOCK_TASKS);
-    }
+    setSearchParams(projId === 'all' ? {} : { project: String(projId) });
   };
 
   // Drag and drop handlers

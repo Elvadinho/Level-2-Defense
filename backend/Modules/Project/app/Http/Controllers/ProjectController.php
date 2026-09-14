@@ -26,7 +26,7 @@ class ProjectController extends Controller
     public function store(ProjectRequest $request): JsonResponse
     {
         $project = $this->projectService->create($request->validated());
-        return response()->json($project->load(['manager.user', 'members']), 201);
+        return response()->json($project->load(['manager.user', 'members'])->loadCount('tasks'), 201);
     }
 
     /**
@@ -34,7 +34,7 @@ class ProjectController extends Controller
      */
     public function show(Project $project): JsonResponse
     {
-        return response()->json($project->load(['manager.user', 'members.user', 'tasks']));
+        return response()->json($project->load(['manager.user', 'members.user', 'tasks'])->loadCount('tasks'));
     }
 
 
@@ -44,7 +44,7 @@ class ProjectController extends Controller
     public function update(ProjectRequest $request, Project $project): JsonResponse
     {
         $updated = $this->projectService->update($project, $request->validated());
-        return response()->json($updated->load(['manager.user', 'members.user']));
+        return response()->json($updated->load(['manager.user', 'members.user'])->loadCount('tasks'));
     }
 
     /**

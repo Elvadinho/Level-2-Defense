@@ -258,6 +258,10 @@ export const ProjectsPage: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const openProjectTasks = (project: Project) => {
+    navigate(`/tasks?project=${project.id}`);
+  };
+
   return (
     <div className="space-y-4">
       {/* Odoo Control Panel Header */}
@@ -458,11 +462,11 @@ export const ProjectsPage: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate('/tasks')}
+                  onClick={() => openProjectTasks(proj)}
                   rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
                   className="w-full justify-center"
                 >
-                  View Tasks ({proj.tasks_count || 0})
+                  View Tasks ({proj.tasks_count ?? proj.tasks?.length ?? 0})
                 </Button>
               </div>
             </div>
@@ -481,6 +485,7 @@ export const ProjectsPage: React.FC = () => {
                   <th className="px-4 py-3">Budget</th>
                   <th className="px-4 py-3">Timeline</th>
                   <th className="px-4 py-3">Team</th>
+                  <th className="px-4 py-3">Tasks</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -518,6 +523,15 @@ export const ProjectsPage: React.FC = () => {
                     </td>
                     <td className="px-4 py-3 text-slate-600">
                       {p.members?.length || 0} members
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => openProjectTasks(p)}
+                        className="font-semibold text-[#05AD98] hover:underline"
+                        title={`Open tasks for ${p.name}`}
+                      >
+                        {p.tasks_count ?? p.tasks?.length ?? 0} task(s)
+                      </button>
                     </td>
                     <td className="px-4 py-3 text-right space-x-1">
                       <button

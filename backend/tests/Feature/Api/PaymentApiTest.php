@@ -22,7 +22,7 @@ class PaymentApiTest extends TestCase
     {
         parent::setUp();
 
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->create(['role' => 'admin']);
         $this->actingAs($this->user, 'api');
 
         $this->customer = Customer::create([
@@ -87,7 +87,7 @@ class PaymentApiTest extends TestCase
         ]);
 
         Http::assertSent(function ($request) {
-            return $request->method() === 'PUT'
+            return $request->method() === 'POST'
                 && str_contains($request->url(), '/payments/tr.notchpay-mtn-123');
         });
     }

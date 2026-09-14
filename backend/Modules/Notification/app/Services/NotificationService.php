@@ -34,9 +34,11 @@ class NotificationService
             'channel' => $channel,
         ]);
 
-        // Dispatch email job only if an email channel is required and a job class exists
+        // Keep the notification in the app and send the email immediately when
+        // the caller requests an email/both. This avoids relying on a separate
+        // queue worker for important transactional messages.
         if ($channel !== 'in_app' && class_exists(\Modules\Notification\Jobs\SendNotificationEmailJob::class)) {
-            \Modules\Notification\Jobs\SendNotificationEmailJob::dispatch($notification);
+            \Modules\Notification\Jobs\SendNotificationEmailJob::dispatchSync($notification);
         }
 
         return $notification;
