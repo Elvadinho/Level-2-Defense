@@ -7,12 +7,13 @@ use Modules\Employee\Enums\EmploymentStatus;
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Rule;
+use Modules\Authentication\Enums\Role;
 
 class EmployeeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return in_array($this->user()?->role, [Role::ADMIN, Role::HR_MANAGER], true);
     }
 
     public function rules(): array

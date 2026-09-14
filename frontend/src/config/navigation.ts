@@ -39,7 +39,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     label: 'Employees',
     path: '/employees',
     icon: Users,
-    roles: ['admin', 'hr_manager', 'project_manager'],
+    roles: ['admin', 'hr_manager'],
     description: 'Staff profiles and departmental directory',
   },
   {

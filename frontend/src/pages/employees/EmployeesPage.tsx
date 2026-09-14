@@ -35,8 +35,12 @@ export const EmployeesPage: React.FC = () => {
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isDepartmentModalOpen, setIsDepartmentModalOpen] = useState<boolean>(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isDepartmentSubmitting, setIsDepartmentSubmitting] = useState<boolean>(false);
+  const [departmentName, setDepartmentName] = useState('');
+  const [departmentDescription, setDepartmentDescription] = useState('');
 
   // Form State
   const [formData, setFormData] = useState<CreateEmployeeData>({
@@ -45,7 +49,7 @@ export const EmployeesPage: React.FC = () => {
     user_id: undefined,
     password: '',
     password_confirmation: '',
-    department_id: 1,
+    department_id: 0,
     job_title: '',
     salary: 1500000,
     hire_date: new Date().toISOString().split('T')[0],
@@ -67,16 +71,13 @@ export const EmployeesPage: React.FC = () => {
       const resolvedDepts = Array.isArray(deptData) && deptData.length > 0 ? deptData : MOCK_DEPARTMENTS;
       setEmployees(resolvedEmps);
       setDepartments(resolvedDepts);
-      if (resolvedDepts.length > 0 && !formData.department_id) {
-        setFormData((prev) => ({ ...prev, department_id: resolvedDepts[0].id }));
-      }
     } catch {
       setEmployees(MOCK_EMPLOYEES);
       setDepartments(MOCK_DEPARTMENTS);
     } finally {
       setIsLoading(false);
     }
-  }, [formData.department_id]);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -90,7 +91,7 @@ export const EmployeesPage: React.FC = () => {
       user_id: undefined,
       password: '',
       password_confirmation: '',
-      department_id: departments[0]?.id || 1,
+      department_id: 0,
       job_title: '',
       salary: 1500000,
       hire_date: new Date().toISOString().split('T')[0],
@@ -100,6 +101,28 @@ export const EmployeesPage: React.FC = () => {
       role: 'employee',
     });
     setIsModalOpen(true);
+  };
+
+  const handleCreateDepartment = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsDepartmentSubmitting(true);
+    setError(null);
+    try {
+      const department = await employeeService.createDepartment({
+        name: departmentName.trim(),
+        description: departmentDescription.trim() || undefined,
+      });
+      setDepartments((current) => [...current, department].sort((a, b) => a.name.localeCompare(b.name)));
+      setFormData((current) => ({ ...current, department_id: department.id }));
+      setDepartmentName('');
+      setDepartmentDescription('');
+      setIsDepartmentModalOpen(false);
+      setSuccessMessage(`Department “${department.name}” created and selected.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to create the department.');
+    } finally {
+      setIsDepartmentSubmitting(false);
+    }
   };
 
   const handleOpenEdit = (emp: Employee) => {
@@ -123,6 +146,10 @@ export const EmployeesPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.department_id) {
+      setError('Select a department before creating or updating an employee.');
+      return;
+    }
     setIsSubmitting(true);
     setError(null);
 
@@ -223,6 +250,14 @@ export const EmployeesPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDepartmentModalOpen(true)}
+              leftIcon={<Building2 className="w-3.5 h-3.5" />}
+            >
+              New Department
+            </Button>
             <Button
               variant="primary"
               size="sm"
@@ -534,14 +569,15 @@ export const EmployeesPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Department *
+                    Assign Department *
                   </label>
                   <select
-                    value={formData.department_id}
-                    onChange={(e) => setFormData({ ...formData, department_id: Number(e.target.value) })}
+                    value={formData.department_id || ''}
+                    onChange={(e) => setFormData({ ...formData, department_id: e.target.value ? Number(e.target.value) : 0 })}
                     className="w-full text-xs rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:outline-none focus:border-[#05AD98]"
                     required
                   >
+                    <option value="" disabled>Select the employee's department</option>
                     {departments.map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.name}
@@ -606,6 +642,33 @@ export const EmployeesPage: React.FC = () => {
                 <Button type="submit" variant="primary" size="sm" isLoading={isSubmitting}>
                   {editingEmployee ? 'Save Changes' : 'Add Employee'}
                 </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isDepartmentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-[#05AD98]" />
+                <h3 className="font-bold text-base text-slate-900">Create Department</h3>
+              </div>
+              <button onClick={() => setIsDepartmentModalOpen(false)} className="text-slate-400 hover:text-slate-600" aria-label="Close">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateDepartment} className="space-y-4 pt-4">
+              <Input label="Department Name" value={departmentName} onChange={(e) => setDepartmentName(e.target.value)} placeholder="e.g. Operations" required autoFocus />
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-700">Description</label>
+                <textarea value={departmentDescription} onChange={(e) => setDepartmentDescription(e.target.value)} placeholder="Optional description" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-[#05AD98] focus:outline-none" rows={3} />
+              </div>
+              <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
+                <Button type="button" variant="secondary" onClick={() => setIsDepartmentModalOpen(false)}>Cancel</Button>
+                <Button type="submit" isLoading={isDepartmentSubmitting}>Create Department</Button>
               </div>
             </form>
           </div>
