@@ -21,6 +21,9 @@ class RegisterRequest extends FormRequest
       'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
       'password' => ['required', 'string', 'confirmed', Password::defaults()],
       'role' => ['sometimes', 'string', new Enum(Role::class)],
+      'department_id' => ['required_if:role,employee', 'nullable', 'exists:departments,id'],
+      'job_title' => ['required_if:role,employee', 'nullable', 'string', 'max:255'],
+      'hire_date' => ['required_if:role,employee', 'nullable', 'date'],
     ];
   }
 }

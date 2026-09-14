@@ -1,5 +1,6 @@
 import api from './api';
 import { AuthResponse, LoginCredentials, ProfileResponse, RegisterData, User } from '../types/auth';
+import { Department } from '../types/employee';
 
 /**
  * Service for interacting with backend Authentication endpoints
@@ -57,5 +58,10 @@ export const authService = {
 
   async deleteUser(id: number): Promise<void> {
     await api.delete(`/auth/users/${id}`);
+  },
+
+  async getRegistrationDepartments(): Promise<Department[]> {
+    const response = await api.get<Department[]>('/auth/departments');
+    return response.data;
   },
 };

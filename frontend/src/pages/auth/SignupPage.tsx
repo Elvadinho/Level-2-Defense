@@ -5,6 +5,8 @@ import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { Alert } from '../../components/common/Alert';
 import { UserRole } from '../../types/auth';
+import { Department } from '../../types/employee';
+import { authService } from '../../services/authService';
 import { ROLE_LABELS } from '../../components/common/Badge';
 import {
   User as UserIcon,
@@ -32,6 +34,10 @@ export const SignupPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [role, setRole] = useState<UserRole>('employee');
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departmentId, setDepartmentId] = useState<number | undefined>();
+  const [jobTitle, setJobTitle] = useState('');
+  const [hireDate, setHireDate] = useState(new Date().toISOString().slice(0, 10));
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -50,6 +56,13 @@ export const SignupPage: React.FC = () => {
       navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, navigate]);
+
+  React.useEffect(() => {
+    authService.getRegistrationDepartments().then((items) => {
+      setDepartments(items);
+      setDepartmentId((current) => current ?? items[0]?.id);
+    }).catch(() => setDepartments([]));
+  }, []);
 
   // Client-side form validation
   const validateForm = (): boolean => {
@@ -80,6 +93,10 @@ export const SignupPage: React.FC = () => {
       newErrors.passwordConfirmation = 'Passwords do not match';
     }
 
+    if (role === 'employee' && (!departmentId || !jobTitle.trim() || !hireDate)) {
+      newErrors.name = newErrors.name || 'Choose a department and provide the employee job title.';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -101,6 +118,9 @@ export const SignupPage: React.FC = () => {
         password,
         password_confirmation: passwordConfirmation,
         role,
+        department_id: departmentId,
+        job_title: jobTitle.trim(),
+        hire_date: hireDate,
       });
       navigate('/dashboard', { replace: true });
     } catch (err) {
@@ -214,6 +234,23 @@ export const SignupPage: React.FC = () => {
                 Sets your initial dashboard layout and module accessibility
               </p>
             </div>
+
+            {role === 'employee' && (
+              <div className="rounded-lg border border-[#05AD98]/30 bg-[#05AD98]/5 p-3 space-y-3">
+                <p className="text-xs font-semibold text-[#035D52]">Employee profile details — required for attendance scanning</p>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">Department *</label>
+                  <select value={departmentId || ''} onChange={(e) => setDepartmentId(Number(e.target.value))} className="block w-full rounded-lg text-xs bg-white border border-slate-300 text-slate-900 px-3 py-2.5 focus:border-[#05AD98] focus:outline-none" required>
+                    <option value="" disabled>Select department</option>
+                    {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input label="Job Title" required value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="e.g. Support Officer" />
+                  <Input label="Hire Date" type="date" required value={hireDate} onChange={(e) => setHireDate(e.target.value)} />
+                </div>
+              </div>
+            )}
 
             {/* Password */}
             <Input

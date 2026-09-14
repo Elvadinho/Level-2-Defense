@@ -21,6 +21,12 @@ export interface User {
   email_verified_at?: string | null;
   created_at?: string;
   updated_at?: string;
+  employee?: {
+    id: number;
+    department_id: number;
+    job_title: string;
+    hire_date: string;
+  } | null;
 }
 
 // Credentials required for user login
@@ -36,6 +42,9 @@ export interface RegisterData {
   password: string;
   password_confirmation: string;
   role?: UserRole;
+  department_id?: number;
+  job_title?: string;
+  hire_date?: string;
 }
 
 // Authentication response structure from API endpoints

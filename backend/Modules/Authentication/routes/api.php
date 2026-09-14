@@ -10,6 +10,7 @@ Route::prefix('auth')->group(function () {
     // Public routes - no authentication required
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::get('/departments', [AuthController::class, 'departments']);
 
     // Protected routes - require valid sanctum token
     Route::middleware('auth:api')->group(function () {

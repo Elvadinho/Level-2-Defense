@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use Modules\Authentication\Enums\Role;
+use Modules\Employee\Models\Department;
+use Modules\Employee\Models\Employee;
+use Illuminate\Support\Facades\DB;
 use Modules\Authentication\Http\Requests\LoginRequest;
 use Modules\Authentication\Http\Requests\RegisterRequest;
 use Modules\Authentication\Services\AuthService;
@@ -73,38 +76,81 @@ class AuthController extends Controller
   public function users(Request $request): JsonResponse
   {
     $this->ensureAdmin($request);
-    return response()->json(User::query()->select(['id', 'name', 'email', 'role', 'created_at', 'updated_at'])->latest()->get());
+    return response()->json(User::query()->with('employee.department')->select(['id', 'name', 'email', 'role', 'created_at', 'updated_at'])->latest()->get());
+  }
+
+  /** Public, read-only department choices used by the employee registration form. */
+  public function departments(): JsonResponse
+  {
+    return response()->json(Department::query()->select(['id', 'name'])->orderBy('name')->get());
   }
 
   public function createUser(Request $request): JsonResponse
   {
     $this->ensureAdmin($request);
-    $data = $request->validate([
-      'name' => ['required', 'string', 'max:255'],
-      'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-      'password' => ['required', 'string', 'confirmed', 'min:8'],
-      'role' => ['required', new \Illuminate\Validation\Rules\Enum(Role::class)],
-    ]);
-    $user = User::create([...$data, 'password' => Hash::make($data['password'])]);
-    return response()->json($user, 201);
+    $data = $this->validateUserData($request, true);
+    $user = DB::transaction(function () use ($data) {
+      $user = User::create([
+        'name' => $data['name'],
+        'email' => $data['email'],
+        'password' => Hash::make($data['password']),
+        'role' => $data['role'],
+      ]);
+      $this->syncEmployeeProfile($user, $data);
+      return $user;
+    });
+    return response()->json($user->load('employee.department'), 201);
   }
 
   public function updateUser(Request $request, User $user): JsonResponse
   {
     $this->ensureAdmin($request);
-    $data = $request->validate([
-      'name' => ['sometimes', 'string', 'max:255'],
-      'email' => ['sometimes', 'email', 'max:255', 'unique:users,email,' . $user->id],
-      'role' => ['sometimes', new \Illuminate\Validation\Rules\Enum(Role::class)],
-      'password' => ['nullable', 'string', 'confirmed', 'min:8'],
+    $data = $this->validateUserData($request, false);
+    $user = DB::transaction(function () use ($user, $data) {
+      $account = array_intersect_key($data, array_flip(['name', 'email', 'role', 'password']));
+      if (!empty($account['password'])) {
+        $account['password'] = Hash::make($account['password']);
+      } else {
+        unset($account['password']);
+      }
+      $user->update($account);
+      $this->syncEmployeeProfile($user, $data);
+      return $user;
+    });
+    return response()->json($user->load('employee.department'));
+  }
+
+  private function validateUserData(Request $request, bool $creating): array
+  {
+    $user = $request->route('user');
+    return $request->validate([
+      'name' => ['required', 'string', 'max:255'],
+      'email' => ['required', 'email', 'max:255', 'unique:users,email,' . ($user?->id ?? 'NULL')],
+      'password' => [$creating ? 'required' : 'nullable', 'string', 'confirmed', 'min:8'],
+      'role' => ['required', new \Illuminate\Validation\Rules\Enum(Role::class)],
+      'department_id' => ['required_if:role,employee', 'nullable', 'exists:departments,id'],
+      'job_title' => ['required_if:role,employee', 'nullable', 'string', 'max:255'],
+      'hire_date' => ['required_if:role,employee', 'nullable', 'date'],
     ]);
-    if (!empty($data['password'])) {
-      $data['password'] = Hash::make($data['password']);
-    } else {
-      unset($data['password']);
+  }
+
+  private function syncEmployeeProfile(User $user, array $data): void
+  {
+    if ($user->role !== Role::EMPLOYEE) {
+      return;
     }
-    $user->update($data);
-    return response()->json($user);
+
+    $profile = $user->employee;
+    $profileData = [
+      'department_id' => $data['department_id'],
+      'job_title' => $data['job_title'],
+      'hire_date' => $data['hire_date'],
+    ];
+    if ($profile) {
+      $profile->update($profileData);
+    } else {
+      Employee::create([...$profileData, 'user_id' => $user->id, 'employment_status' => 'active']);
+    }
   }
 
   public function deleteUser(Request $request, User $user): JsonResponse
