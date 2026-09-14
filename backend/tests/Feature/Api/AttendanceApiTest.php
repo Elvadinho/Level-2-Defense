@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\User;
 use Modules\Attendance\Models\Attendance;
+use Modules\Attendance\Services\AttendanceService;
 use Modules\Employee\Models\Department;
 use Modules\Employee\Models\Employee;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -40,9 +41,12 @@ class AttendanceApiTest extends TestCase
     {
         $this->actingAs($this->employeeUser, 'api');
 
+        $qrCode = app(AttendanceService::class)->generateQrToken();
+
         $response = $this->postJson('/api/attendance/check-in', [
             'latitude' => 3.8452,
-            'longitude' => 11.4861
+            'longitude' => 11.4861,
+            'qr_code' => $qrCode,
         ]);
 
         $response->assertStatus(201)
@@ -59,12 +63,15 @@ class AttendanceApiTest extends TestCase
     {
         $this->actingAs($this->employeeUser, 'api');
 
+        $attendanceService = app(AttendanceService::class);
+
         // First check in
         $response1 = $this->postJson('/api/attendance/check-in', [
             'latitude' => 3.8452,
-            'longitude' => 11.4861
+            'longitude' => 11.4861,
+            'qr_code' => $attendanceService->generateQrToken(),
         ]);
-        
+
         if ($response1->status() !== 201) {
             dump("CHECK IN FAILED:", $response1->json());
         }
@@ -72,7 +79,8 @@ class AttendanceApiTest extends TestCase
         // Then check out
         $response = $this->postJson('/api/attendance/check-out', [
             'latitude' => 3.8453,
-            'longitude' => 11.4862
+            'longitude' => 11.4862,
+            'qr_code' => $attendanceService->generateQrToken(),
         ]);
 
         $response->assertStatus(200)

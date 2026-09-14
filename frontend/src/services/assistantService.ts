@@ -3,7 +3,13 @@ import { AgentRequest, AskAssistantResponse } from '../types/assistant';
 
 export const assistantService = {
   async ask(question: string): Promise<AskAssistantResponse> {
-    const response = await api.post<AskAssistantResponse>('/assistant/ask', { question });
+    // The backend allows up to 120s for the LLM call to complete, so this
+    // request needs a longer timeout than the global Axios default.
+    const response = await api.post<AskAssistantResponse>(
+      '/assistant/ask',
+      { question },
+      { timeout: 130000 }
+    );
     return response.data;
   },
 

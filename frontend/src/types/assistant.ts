@@ -1,16 +1,17 @@
 export interface AgentRequest {
   id: number;
   user_id: number;
-  question?: string;
-  query?: string;
+  user_input?: string;
   intent?: 'information' | 'action' | 'query' | string;
   status: 'pending' | 'pending_confirmation' | 'done' | 'completed' | 'failed' | 'cancelled' | string;
   parsed_action?: {
-    name: string;
-    params: Record<string, unknown>;
+    name?: string;
+    params?: Record<string, unknown>;
+    explanation?: string;
   } | null;
-  explanation?: string;
   result?: string | null;
+  explanation?: string | null;
+  data?: unknown;
   error_log?: string | null;
   created_at?: string;
   updated_at?: string;

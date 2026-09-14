@@ -31,4 +31,13 @@ export interface CheckInPayload {
 export interface CheckOutPayload {
   latitude?: number;
   longitude?: number;
+  qr_code?: string;
+}
+
+export type QrKioskPeriod = 'day' | 'week' | 'month';
+
+export interface QrKioskCode {
+  svg: string;
+  period: QrKioskPeriod;
+  expiresAt: string | null;
 }

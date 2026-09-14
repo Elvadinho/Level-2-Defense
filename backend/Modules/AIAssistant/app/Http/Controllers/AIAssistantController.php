@@ -62,7 +62,7 @@ class AIAssistantController extends Controller
                         'status' => 'executed',
                         'intent' => 'action',
                         'action' => $actionName,
-                        'explanation' => $result['message'],
+                        'explanation' => "Action completed successfully. {$result['message']} The affected record details are available below for verification.",
                         'data' => $result['data'],
                     ], 200);
                 }
@@ -242,7 +242,7 @@ class AIAssistantController extends Controller
                     'intent' => 'action',
                     'action' => $actionName,
                     'requires_confirmation' => false,
-                    'explanation' => $result['message'],
+                    'explanation' => "Action completed successfully. {$result['message']} The affected record details are available below for verification.",
                     'data' => $result['data'],
                     'reasoning' => $llmResult['reasoning'] ?? null,
                 ], 200);
@@ -419,6 +419,19 @@ class AIAssistantController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(min($perPage, 50));
 
-        return response()->json($history);
+        return response()->json($history->items()->map(fn (AgentRequest $agentRequest) => [
+            'id' => $agentRequest->id,
+            'user_id' => $agentRequest->user_id,
+            'user_input' => $agentRequest->user_input,
+            'intent' => $agentRequest->intent,
+            'status' => $agentRequest->status,
+            'parsed_action' => $agentRequest->parsed_action,
+            // Informational replies are retained in parsed_action; return their
+            // explanation so the frontend can reopen a saved conversation.
+            'explanation' => $agentRequest->parsed_action['explanation'] ?? $agentRequest->error_log,
+            'result' => $agentRequest->result ? json_decode($agentRequest->result, true) : null,
+            'created_at' => $agentRequest->created_at,
+            'updated_at' => $agentRequest->updated_at,
+        ]));
     }
 }

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { attendanceService } from '../../services/attendanceService';
-import { AttendanceRecord } from '../../types/attendance';
-import { MOCK_ATTENDANCE } from '../../data/mockData';
+import { AttendanceRecord, QrKioskPeriod } from '../../types/attendance';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Alert } from '../../components/common/Alert';
@@ -18,17 +17,15 @@ import {
   Camera,
   ScanLine,
   AlertCircle,
+  Download,
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
-
-/** Expected QR token from the backend */
-const EXPECTED_QR_TOKEN = 'modoo-office-secure-token';
 
 export const AttendancePage: React.FC = () => {
   const { user } = useAuth();
   const isAdminOrHR = user?.role === 'admin' || user?.role === 'hr_manager';
 
-  const [records, setRecords] = useState<AttendanceRecord[]>(MOCK_ATTENDANCE);
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isActionLoading, setIsActionLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +34,11 @@ export const AttendancePage: React.FC = () => {
 
   // QR Code Kiosk Modal (HR generates QR for display)
   const [qrSvg, setQrSvg] = useState<string | null>(null);
+  const [qrPeriod, setQrPeriod] = useState<QrKioskPeriod>('day');
+  const [qrExpiresAt, setQrExpiresAt] = useState<string | null>(null);
   const [showQrModal, setShowQrModal] = useState<boolean>(false);
   const [qrLoading, setQrLoading] = useState<boolean>(false);
+  const [qrError, setQrError] = useState<string | null>(null);
 
   // QR Scanner Modal (Employee scans QR to check-in/out)
   const [showScannerModal, setShowScannerModal] = useState<boolean>(false);
@@ -68,14 +68,15 @@ export const AttendancePage: React.FC = () => {
     setError(null);
     try {
       if (isAdminOrHR) {
-        const data = await attendanceService.getAllAttendance().catch(() => []);
-        setRecords(Array.isArray(data) && data.length > 0 ? data : MOCK_ATTENDANCE);
+        const data = await attendanceService.getAllAttendance();
+        setRecords(Array.isArray(data) ? data : []);
       } else {
-        const data = await attendanceService.getMyHistory().catch(() => []);
-        setRecords(Array.isArray(data) && data.length > 0 ? data : MOCK_ATTENDANCE);
+        const data = await attendanceService.getMyHistory();
+        setRecords(Array.isArray(data) ? data : []);
       }
-    } catch {
-      setRecords(MOCK_ATTENDANCE);
+    } catch (err) {
+      setRecords([]);
+      setError(err instanceof Error ? err.message : 'Could not load attendance records.');
     } finally {
       setIsLoading(false);
     }
@@ -86,87 +87,60 @@ export const AttendancePage: React.FC = () => {
   }, [fetchAttendance]);
 
   // ── Geolocation helper ──
-  const getCoordinates = (): Promise<{ latitude?: number; longitude?: number }> => {
-    return new Promise((resolve) => {
+  const getCoordinates = (): Promise<{ latitude: number; longitude: number }> => {
+    return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        resolve({});
+        reject(new Error('This device does not support location services. Attendance requires your location.'));
         return;
       }
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-        () => resolve({}),
+        () => reject(new Error('Location permission is required to record attendance. Please allow location access and try again.')),
         { timeout: 5000 }
       );
     });
   };
 
   // ── Check-in/out actions (called after successful QR scan) ──
-  const executeCheckIn = async () => {
+  const executeCheckIn = async (qrCode: string) => {
     setIsActionLoading(true);
     setError(null);
     setSuccessMessage(null);
     try {
       const coords = await getCoordinates();
       await attendanceService.checkIn({
-        latitude: coords.latitude || 4.0511,
-        longitude: coords.longitude || 9.7679,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        qr_code: qrCode,
       });
       setSuccessMessage('Checked in successfully!');
       fetchAttendance();
-    } catch {
-      // Local check-in mock update
-      const newRec: AttendanceRecord = {
-        id: Date.now(),
-        employee_id: 4,
-        date: todayStr,
-        check_in_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        check_out_time: null,
-        status: 'present',
-        location: 'Douala HQ - Tech Campus',
-        created_at: new Date().toISOString(),
-        employee: {
-          id: 4,
-          user_id: user?.id || 4,
-          department_id: 2,
-          job_title: 'Software Engineer',
-          status: 'active',
-          salary: 1950000,
-          hire_date: '2024-06-01',
-          user: user || { id: 4, name: 'Employee', email: 'emp@modoo.cm', role: 'employee', created_at: '' },
-        },
-      };
-      setRecords((prev) => [newRec, ...prev]);
-      setSuccessMessage('Check-in recorded successfully!');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Check-in failed. Please try again.';
+      setError(message);
+      throw err;
     } finally {
       setIsActionLoading(false);
     }
   };
 
-  const executeCheckOut = async () => {
+  const executeCheckOut = async (qrCode: string) => {
     setIsActionLoading(true);
     setError(null);
     setSuccessMessage(null);
     try {
       const coords = await getCoordinates();
       await attendanceService.checkOut({
-        latitude: coords.latitude || 4.0511,
-        longitude: coords.longitude || 9.7679,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        qr_code: qrCode,
       });
       setSuccessMessage('Checked out successfully!');
       fetchAttendance();
-    } catch {
-      // Local check-out mock update
-      setRecords((prev) =>
-        prev.map((r, idx) =>
-          idx === 0
-            ? {
-                ...r,
-                check_out_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              }
-            : r
-        )
-      );
-      setSuccessMessage('Check-out recorded successfully!');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Check-out failed. Please try again.';
+      setError(message);
+      throw err;
     } finally {
       setIsActionLoading(false);
     }
@@ -180,61 +154,9 @@ export const AttendancePage: React.FC = () => {
     setShowScannerModal(true);
   };
 
-  const startScanning = async () => {
+  const startScanning = () => {
     setScannerStatus('scanning');
     setScannerMessage('Point your camera at the QR code displayed at the office entrance...');
-
-    try {
-      const html5QrCode = new Html5Qrcode(scannerContainerRef.current);
-      scannerRef.current = html5QrCode;
-
-      await html5QrCode.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-        },
-        async (decodedText) => {
-          // QR code successfully scanned
-          await html5QrCode.stop();
-          scannerRef.current = null;
-
-          if (decodedText === EXPECTED_QR_TOKEN) {
-            setScannerStatus('success');
-            setScannerMessage('QR code verified! Processing your attendance...');
-
-            // Execute the actual check-in/out
-            if (scannerAction === 'check-in') {
-              await executeCheckIn();
-            } else {
-              await executeCheckOut();
-            }
-
-            // Auto close the modal after a short delay
-            setTimeout(() => {
-              setShowScannerModal(false);
-            }, 1500);
-          } else {
-            setScannerStatus('error');
-            setScannerMessage('Invalid QR code. Please scan the official Modoo attendance code displayed at the entrance.');
-          }
-        },
-        () => {
-          // Scan frame with no QR found — keep scanning silently
-        }
-      );
-    } catch (err: unknown) {
-      setScannerStatus('error');
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      if (message.includes('NotAllowed') || message.includes('Permission')) {
-        setScannerMessage('Camera permission was denied. Please allow camera access in your browser settings and try again.');
-      } else if (!window.isSecureContext) {
-        setScannerMessage('Camera access requires a secure HTTPS connection or localhost. Please ensure you are not testing over plain HTTP on your network.');
-      } else {
-        setScannerMessage(`Could not access camera: ${message}`);
-      }
-    }
   };
 
   const stopScanning = async () => {
@@ -248,6 +170,86 @@ export const AttendancePage: React.FC = () => {
       scannerRef.current = null;
     }
   };
+
+  // Actually launch the camera once the scanner container div has committed
+  // to the DOM (i.e. after the 'scanning' state has rendered), so html5-qrcode
+  // never fails with "HTML Element with id=... not found".
+  useEffect(() => {
+    if (scannerStatus !== 'scanning') {
+      return;
+    }
+
+    let cancelled = false;
+    const html5QrCode = new Html5Qrcode(scannerContainerRef.current);
+    scannerRef.current = html5QrCode;
+
+    html5QrCode
+      .start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+        },
+        (decodedText) => {
+          if (cancelled) return;
+          cancelled = true;
+
+          html5QrCode
+            .stop()
+            .catch(() => {})
+            .finally(async () => {
+              scannerRef.current = null;
+              setScannerStatus('success');
+              setScannerMessage('QR code verified! Processing your attendance...');
+
+              try {
+                if (scannerAction === 'check-in') {
+                  await executeCheckIn(decodedText);
+                } else {
+                  await executeCheckOut(decodedText);
+                }
+                setTimeout(() => setShowScannerModal(false), 1500);
+              } catch {
+                setScannerStatus('error');
+                setScannerMessage('Could not record your attendance with this QR code. Please try again.');
+              }
+            });
+        },
+        () => {
+          // Scan frame with no QR found — keep scanning silently
+        }
+      )
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        scannerRef.current = null;
+        setScannerStatus('error');
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.includes('NotAllowed') || message.includes('Permission')) {
+          setScannerMessage('Camera permission was denied. Please allow camera access in your browser settings and try again.');
+        } else if (!window.isSecureContext) {
+          setScannerMessage('Camera access requires a secure HTTPS connection or localhost. Please ensure you are not testing over plain HTTP on your network.');
+        } else {
+          setScannerMessage(`Could not access camera: ${message}`);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      html5QrCode
+        .stop()
+        .catch(() => {})
+        .finally(() => {
+          try {
+            html5QrCode.clear();
+          } catch {
+            // Already cleared
+          }
+        });
+      scannerRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scannerStatus]);
 
   const closeScannerModal = async () => {
     await stopScanning();
@@ -264,21 +266,46 @@ export const AttendancePage: React.FC = () => {
   }, []);
 
   // ── HR QR Kiosk ──
-  const handleOpenQrModal = async () => {
+  const generateKioskQr = async (period: QrKioskPeriod) => {
     setShowQrModal(true);
     setQrLoading(true);
+    setQrError(null);
+    setQrSvg(null);
     try {
-      const res = await attendanceService.generateQrCode();
-      setQrSvg(res.qr_svg);
-    } catch {
-      // Fallback SVG QR placeholder
-      setQrSvg(
-        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="200" height="200"><rect width="100" height="100" fill="#ffffff"/><rect x="10" y="10" width="30" height="30" fill="#05AD98"/><rect x="60" y="10" width="30" height="30" fill="#05AD98"/><rect x="10" y="60" width="30" height="30" fill="#05AD98"/><rect x="20" y="20" width="10" height="10" fill="#ffffff"/><rect x="70" y="20" width="10" height="10" fill="#ffffff"/><rect x="20" y="70" width="10" height="10" fill="#ffffff"/><rect x="45" y="45" width="10" height="10" fill="#05AD98"/><rect x="60" y="60" width="15" height="15" fill="#05AD98"/></svg>`
-      );
+      const res = await attendanceService.generateQrCode(period);
+      setQrSvg(res.svg);
+      setQrPeriod(res.period);
+      setQrExpiresAt(res.expiresAt);
+    } catch (err) {
+      setQrError(err instanceof Error ? err.message : 'Failed to generate QR code.');
     } finally {
       setQrLoading(false);
     }
   };
+
+  const handleOpenQrModal = () => generateKioskQr(qrPeriod);
+
+  const handleDownloadQr = () => {
+    if (!qrSvg) return;
+    // XML declarations are only valid as the first bytes of an SVG file.
+    // Remove any whitespace/BOM added before the response reaches the browser.
+    const cleanSvg = qrSvg.replace(/^\uFEFF?\s*/, '');
+    const blob = new Blob([cleanSvg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `attendance-qr-${qrPeriod}.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const qrPeriodOptions: { value: QrKioskPeriod; label: string }[] = [
+    { value: 'day', label: '1 Day' },
+    { value: 'week', label: '1 Week' },
+    { value: 'month', label: '1 Month' },
+  ];
 
   const filteredRecords = records.filter((r) => {
     const empName = r.employee?.user?.name || '';
@@ -560,9 +587,25 @@ export const AttendancePage: React.FC = () => {
               Display this QR code at the office entrance. Employees will scan it with their device camera to clock in and out.
             </p>
 
+            <label className="block text-left text-xs font-semibold text-slate-700">
+              QR validity period
+              <select
+                value={qrPeriod}
+                onChange={(event) => generateKioskQr(event.target.value as QrKioskPeriod)}
+                disabled={qrLoading}
+                className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-[#05AD98] focus:outline-none"
+              >
+                {qrPeriodOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center min-h-[220px]">
               {qrLoading ? (
                 <Loader2 className="w-8 h-8 animate-spin text-[#05AD98]" />
+              ) : qrError ? (
+                <p className="text-xs text-rose-600 font-medium">{qrError}</p>
               ) : qrSvg ? (
                 <div
                   className="w-48 h-48 flex items-center justify-center"
@@ -574,17 +617,40 @@ export const AttendancePage: React.FC = () => {
             </div>
 
             <div className="p-2.5 rounded-lg bg-[#05AD98]/10 border border-[#05AD98]/20 text-xs text-[#037667] font-medium">
-              This code encodes a secure office token. It is refreshed by the system to prevent misuse.
+              Valid for {qrPeriod === 'day' ? '1 day' : qrPeriod === 'week' ? '1 week' : '1 month'}
+              {qrExpiresAt && ` — expires ${new Date(qrExpiresAt).toLocaleString()}.`}
             </div>
 
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowQrModal(false)}
-              className="w-full justify-center"
-            >
-              Close Kiosk
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenQrModal}
+                isLoading={qrLoading}
+                leftIcon={<RefreshCw className="w-3 h-3" />}
+                className="flex-1 justify-center"
+              >
+                Refresh
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadQr}
+                disabled={!qrSvg || qrLoading}
+                leftIcon={<Download className="w-3 h-3" />}
+                className="flex-1 justify-center"
+              >
+                Download
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowQrModal(false)}
+                className="flex-1 justify-center"
+              >
+                Close Kiosk
+              </Button>
+            </div>
           </div>
         </div>
       )}

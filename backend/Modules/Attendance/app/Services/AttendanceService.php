@@ -3,6 +3,8 @@
 namespace Modules\Attendance\Services;
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Modules\Attendance\Enums\AttendanceStatus;
 use Modules\Attendance\Models\Attendance;
 use Modules\Employee\Models\Employee;
@@ -10,15 +12,56 @@ use Illuminate\Database\Eloquent\Collection;
 
 class AttendanceService
 {
+    private const QR_CACHE_KEY = 'attendance:qr_token';
+
+    private const PERIOD_SECONDS = [
+        'day' => 86400,
+        'week' => 604800,
+        'month' => 2592000,
+    ];
+
+    /**
+     * Generate a new random office QR token valid for the given period
+     * ('day', 'week', or 'month') and store it as the only currently
+     * valid token, so it can be printed/displayed for that whole period.
+     *
+     * @return array{token: string, period: string, expires_at: \Illuminate\Support\Carbon}
+     */
+    public function generateQrToken(string $period = 'day'): array
+    {
+        $ttlSeconds = self::PERIOD_SECONDS[$period] ?? self::PERIOD_SECONDS['day'];
+        $period = array_key_exists($period, self::PERIOD_SECONDS) ? $period : 'day';
+
+        $token = Str::random(48);
+        $expiresAt = now()->addSeconds($ttlSeconds);
+        Cache::put(self::QR_CACHE_KEY, $token, $expiresAt);
+
+        return ['token' => $token, 'period' => $period, 'expires_at' => $expiresAt];
+    }
+
+    /**
+     * @throws \RuntimeException if the scanned QR code is missing, stale, or does not
+     *         match the token currently displayed at the office kiosk.
+     */
+    private function verifyQrToken(string $qrCode): void
+    {
+        if (Cache::get(self::QR_CACHE_KEY) !== $qrCode) {
+            throw new \RuntimeException('Invalid or expired QR code. Please scan the code currently displayed at the office.');
+        }
+    }
+
     /**
      * Check in the authenticated employee.
      *
      * @param Employee $employee The employee (derived from auth token)
      * @param float $latitude GPS latitude from the phone
      * @param float $longitude GPS longitude from the phone
+     * @param string $qrCode Token decoded from the office QR kiosk
      */
-    public function checkIn(Employee $employee, float $latitude, float $longitude): Attendance
+    public function checkIn(Employee $employee, float $latitude, float $longitude, string $qrCode): Attendance
     {
+        $this->verifyQrToken($qrCode);
+
         //      verify geolocation and catch the distance
         $distance = $this->verifyLocation($latitude, $longitude);
 
@@ -48,8 +91,10 @@ class AttendanceService
         ]);
     }
 
-    public function checkOut(Employee $employee, float $latitude, float $longitude): Attendance
+    public function checkOut(Employee $employee, float $latitude, float $longitude, string $qrCode): Attendance
     {
+        $this->verifyQrToken($qrCode);
+
         //      Verify geolocation
         $distance = $this->verifyLocation($latitude, $longitude);
 

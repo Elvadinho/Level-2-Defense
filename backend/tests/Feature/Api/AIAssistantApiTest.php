@@ -122,7 +122,7 @@ class AIAssistantApiTest extends TestCase
         $response = $this->getJson('/api/assistant/history');
 
         $response->assertStatus(200)
-                 ->assertJsonPath('data.0.user_input', 'list all projects');
+                 ->assertJsonPath('0.user_input', 'list all projects');
     }
 
     public function test_parse_response_handles_markdown_code_blocks_and_think_tags()

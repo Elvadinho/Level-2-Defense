@@ -24,6 +24,7 @@ export const AIAssistantPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const conversationStorageKey = user?.id ? `modoo_assistant_messages_${user.id}` : null;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -33,52 +34,43 @@ export const AIAssistantPage: React.FC = () => {
     scrollToBottom();
   }, [messages, isLoading]);
 
-  // Initial welcome message
+  // Restore this user's conversation after navigating away or refreshing.
   useEffect(() => {
-    setMessages([
-      {
-        id: 'welcome',
-        sender: 'assistant',
-        text: `Hello ${user?.name || 'there'}! I am your Modoo Business Assistant. I can analyze project deadlines, summarize customer invoices, check attendance metrics, or assist with daily operations. How can I help you today?`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
-  }, [user]);
+    if (!conversationStorageKey) return;
+
+    try {
+      const saved = JSON.parse(localStorage.getItem(conversationStorageKey) || '[]') as ChatMessage[];
+      if (Array.isArray(saved) && saved.length > 0) {
+        setMessages(saved);
+        return;
+      }
+    } catch {
+      // A malformed browser cache should not prevent the assistant from opening.
+    }
+
+    setMessages([{
+      id: 'welcome',
+      sender: 'assistant',
+      text: `Hello ${user?.name || 'there'}! I am your Modoo Business Assistant. I can analyze project deadlines, summarize customer invoices, check attendance metrics, or assist with daily operations. How can I help you today?`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    }]);
+  }, [conversationStorageKey, user?.name]);
+
+  useEffect(() => {
+    if (conversationStorageKey && messages.length > 0) {
+      localStorage.setItem(conversationStorageKey, JSON.stringify(messages));
+    }
+  }, [conversationStorageKey, messages]);
 
   // Load history
   const loadHistory = useCallback(async () => {
     try {
       const hist = await assistantService.getHistory();
-      if (Array.isArray(hist) && hist.length > 0) {
-        setHistory(hist);
-      } else {
-        setHistory([
-          {
-            id: 1,
-            user_id: user?.id || 1,
-            question: 'Summarize outstanding customer invoices for this month',
-            query: 'Summarize outstanding customer invoices for this month',
-            intent: 'query',
-            status: 'completed',
-            explanation: 'Found 3 active invoices totaling 23,700,000 XAF. 1 invoice is paid, 1 is sent, and 1 is overdue.',
-            created_at: new Date(Date.now() - 3600000).toISOString(),
-          },
-          {
-            id: 2,
-            user_id: user?.id || 1,
-            question: 'List active tasks due this week across all engineering projects',
-            query: 'List active tasks due this week across all engineering projects',
-            intent: 'query',
-            status: 'completed',
-            explanation: 'There are 4 high-priority tasks scheduled for completion this week in the Enterprise Core project.',
-            created_at: new Date(Date.now() - 86400000).toISOString(),
-          },
-        ]);
-      }
+      setHistory(Array.isArray(hist) ? hist : []);
     } catch {
       setHistory([]);
     }
-  }, [user?.id]);
+  }, []);
 
   useEffect(() => {
     loadHistory();
@@ -117,31 +109,18 @@ export const AIAssistantPage: React.FC = () => {
 
       setMessages((prev) => [...prev, assistantMsg]);
       loadHistory();
-    } catch {
-      // Smart ERP fallback answer
-      setTimeout(() => {
-        let answer = `I analyzed the Modoo workspace for your query "${q}". `;
-        if (q.toLowerCase().includes('invoice') || q.toLowerCase().includes('payment')) {
-          answer += `Currently, there are 3 invoices on file (1 Paid: 14,500,000 XAF, 1 Sent: 6,800,000 XAF, 1 Overdue: 2,400,000 XAF). Total receivables pending: 9,200,000 XAF.`;
-        } else if (q.toLowerCase().includes('employee') || q.toLowerCase().includes('attendance')) {
-          answer += `All 6 team members are active across 5 departments. Today's attendance rate is 100% (4 present on time, 1 late, 1 remote).`;
-        } else if (q.toLowerCase().includes('task') || q.toLowerCase().includes('project')) {
-          answer += `You have 3 active projects. The Enterprise Core project has 8 tasks with 3 currently in progress and 1 in review.`;
-        } else {
-          answer += `Everything is running normally across Operations, Projects, and Financial accounting.`;
-        }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'The assistant could not process your request.';
+      setError(message);
 
-        const fallbackMsg: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          sender: 'assistant',
-          text: answer,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          status: 'completed',
-        };
-        setMessages((prev) => [...prev, fallbackMsg]);
-        setIsLoading(false);
-      }, 500);
-      return;
+      const errorMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        sender: 'assistant',
+        text: `Sorry, I couldn't complete that request: ${message}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        status: 'failed',
+      };
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
@@ -170,6 +149,31 @@ export const AIAssistantPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleHistoryClick = (request: AgentRequest) => {
+    const existingMessage = messages.find((message) => message.sender === 'user' && message.text === request.user_input);
+    if (existingMessage) {
+      document.getElementById(`assistant-message-${existingMessage.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    setMessages((previous) => [...previous,
+      {
+        id: `history-question-${request.id}`,
+        sender: 'user',
+        text: request.user_input || 'Untitled request',
+        timestamp: request.created_at ? new Date(request.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Earlier',
+      },
+      {
+        id: `history-note-${request.id}`,
+        sender: 'system',
+        text: request.explanation || 'This saved inquiry did not include a readable response. Ask it again to generate an answer using the latest ERP data.',
+        timestamp: 'Earlier',
+        status: request.status,
+        data: request.result,
+      },
+    ]);
   };
 
   const samplePrompts = [
@@ -211,7 +215,7 @@ export const AIAssistantPage: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* Main Conversation Window */}
-        <div className="lg:col-span-3 bg-white border border-slate-200 rounded-xl shadow-xs flex flex-col h-[650px] overflow-hidden">
+        <div className="lg:col-span-3 bg-white border border-slate-200 rounded-xl shadow-xs flex flex-col h-[min(700px,calc(100vh-220px))] min-h-[420px] overflow-hidden">
           {/* Chat Messages */}
           <div className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-4 bg-slate-50/50">
             {messages.map((msg) => {
@@ -219,6 +223,7 @@ export const AIAssistantPage: React.FC = () => {
               return (
                 <div
                   key={msg.id}
+                  id={`assistant-message-${msg.id}`}
                   className={`flex gap-3 ${isAssistant ? 'justify-start' : 'justify-end'}`}
                 >
                   {isAssistant && (
@@ -227,7 +232,7 @@ export const AIAssistantPage: React.FC = () => {
                     </div>
                   )}
 
-                  <div className={`max-w-xl space-y-2 ${isAssistant ? 'items-start' : 'items-end'}`}>
+                  <div className={`max-w-[85%] sm:max-w-md md:max-w-lg space-y-2 ${isAssistant ? 'items-start' : 'items-end'}`}>
                     <div
                       className={`p-4 rounded-xl text-xs leading-relaxed ${
                         isAssistant
@@ -238,9 +243,14 @@ export const AIAssistantPage: React.FC = () => {
                       <p className="whitespace-pre-wrap">{msg.text}</p>
 
                       {msg.data !== undefined && msg.data !== null && (
-                        <div className="mt-2.5 p-2 bg-slate-50 rounded border border-slate-200 text-[11px] font-mono overflow-x-auto text-slate-700">
-                          <pre>{JSON.stringify(msg.data, null, 2)}</pre>
-                        </div>
+                        <details className="mt-2.5 group">
+                          <summary className="cursor-pointer text-[11px] font-semibold text-[#05AD98] select-none">
+                            View data
+                          </summary>
+                          <div className="mt-1.5 p-2 bg-slate-50 rounded border border-slate-200 text-[11px] font-mono overflow-x-auto text-slate-700 max-h-64 overflow-y-auto">
+                            <pre>{JSON.stringify(msg.data, null, 2)}</pre>
+                          </div>
+                        </details>
                       )}
 
                       {isAssistant && msg.status === 'pending' && msg.agent_request_id && (
@@ -346,7 +356,7 @@ export const AIAssistantPage: React.FC = () => {
         </div>
 
         {/* Sidebar: Recent Queries History */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col h-[650px] overflow-hidden">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col h-[min(700px,calc(100vh-220px))] min-h-[280px] overflow-hidden">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
             <Clock className="w-4 h-4 text-[#05AD98]" />
             <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
@@ -358,11 +368,11 @@ export const AIAssistantPage: React.FC = () => {
             {history.map((req) => (
               <div
                 key={req.id}
-                onClick={() => handleSend(req.query || req.question || '')}
+                onClick={() => handleHistoryClick(req)}
                 className="p-3 rounded-lg border border-slate-200 hover:border-[#05AD98]/50 hover:bg-slate-50/80 transition-all cursor-pointer space-y-1.5 text-xs"
               >
                 <p className="font-semibold text-slate-800 line-clamp-2 leading-snug">
-                  {req.query || req.question}
+                  {req.user_input || 'Untitled request'}
                 </p>
                 <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-100">
                   <span className="capitalize">{req.status}</span>

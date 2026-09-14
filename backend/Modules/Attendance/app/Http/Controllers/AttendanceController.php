@@ -19,7 +19,7 @@ class AttendanceController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        if ($request->user()->role->value !== 'admin' && $request->user()->role->value !== 'hr') {
+        if ($request->user()->role->value !== 'admin' && $request->user()->role->value !== 'hr_manager') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
         return response()->json($this->attendanceService->getAll());
@@ -39,6 +39,7 @@ class AttendanceController extends Controller
                 $employee,
                 $request->latitude,
                 $request->longitude,
+                $request->qr_code,
             );
 
             return response()->json([
@@ -61,6 +62,7 @@ class AttendanceController extends Controller
                 $employee,
                 $request->latitude,
                 $request->longitude,
+                $request->qr_code,
             );
             return response()->json([
                 'message' => 'Checked out successfully.',
@@ -89,18 +91,30 @@ class AttendanceController extends Controller
      */
     public function history(Request $request, int $employeeId): JsonResponse
     {
-        if ($request->user()->role->value !== 'admin' && $request->user()->role->value !== 'hr') {
+        if ($request->user()->role->value !== 'admin' && $request->user()->role->value !== 'hr_manager') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
         return response()->json($this->attendanceService->getHistoryByEmployee($employeeId));
     }
 
+    /**
+     * Generate a kiosk QR code valid for a chosen period ('day', 'week', 'month'),
+     * so it can be printed/displayed and scanned by employees throughout that period.
+     *
+     * GET /api/attendance/qr-code?period=day|week|month
+     */
     public function generateQRCode(Request $request): mixed
     {
-        if ($request->user()->role->value !== 'admin' && $request->user()->role->value !== 'hr') {
+        if ($request->user()->role->value !== 'admin' && $request->user()->role->value !== 'hr_manager') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-        $qrSecretToken = 'modoo-office-secure-token';
+
+        $period = $request->query('period', 'day');
+        if (!in_array($period, ['day', 'week', 'month'], true)) {
+            $period = 'day';
+        }
+
+        $qr = $this->attendanceService->generateQrToken($period);
 
         $qrCode = QrCode::format('svg')
             ->size(400)
@@ -109,9 +123,11 @@ class AttendanceController extends Controller
             ->eye('circle')      // Keeps the circular corner squares
             ->color(0, 102, 204) // Professional Blue
             ->backgroundColor(240, 255, 240) // Very light green background
-            ->generate($qrSecretToken);
+            ->generate($qr['token']);
 
         return response($qrCode, 200)
-            ->header('Content-Type', 'image/svg+xml');
+            ->header('Content-Type', 'image/svg+xml')
+            ->header('X-Qr-Period', $qr['period'])
+            ->header('X-Qr-Expires-At', $qr['expires_at']->toIso8601String());
     }
 }
