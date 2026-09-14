@@ -28,10 +28,11 @@ export interface Employee {
 }
 
 export interface CreateEmployeeData {
+  user_id?: number;
   name: string;
   email: string;
-  password?: string;
-  password_confirmation?: string;
+  password: string;
+  password_confirmation: string;
   department_id: number;
   job_title: string;
   salary: number;

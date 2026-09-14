@@ -28,6 +28,15 @@ class Employee extends Model
         'hire_date',
     ];
 
+    protected $appends = ['status'];
+
+    public function getStatusAttribute(): string
+    {
+        return $this->employment_status instanceof EmploymentStatus
+            ? $this->employment_status->value
+            : (string) $this->employment_status;
+    }
+
     // protected static function newFactory(): EmployeeFactory
     // {
     //     // return EmployeeFactory::new();

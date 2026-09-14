@@ -23,6 +23,7 @@ import { QuotationsPage } from './pages/quotations/QuotationsPage';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
 import { PaymentsPage } from './pages/payments/PaymentsPage';
 import { AIAssistantPage } from './pages/assistant/AIAssistantPage';
+import { UserAccountsPage } from './pages/users/UserAccountsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 /**
@@ -54,6 +55,14 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={getRolesForModule('employees')}>
                     <EmployeesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/users"
+                element={
+                  <ProtectedRoute allowedRoles={getRolesForModule('user-accounts')}>
+                    <UserAccountsPage />
                   </ProtectedRoute>
                 }
               />

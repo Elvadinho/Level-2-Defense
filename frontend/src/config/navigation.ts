@@ -9,6 +9,7 @@ import {
   Receipt,
   CreditCard,
   Bot,
+  ShieldCheck,
 } from 'lucide-react';
 import { NavGroup, NavItem } from '../types/navigation';
 import { UserRole } from '../types/auth';
@@ -17,6 +18,14 @@ import { UserRole } from '../types/auth';
  * Complete definition of all ERP Modules with role-based access controls
  */
 export const ALL_NAV_ITEMS: NavItem[] = [
+  {
+    id: 'user-accounts',
+    label: 'User Accounts',
+    path: '/users',
+    icon: ShieldCheck,
+    roles: ['admin'],
+    description: 'Create, update, and manage access to user accounts',
+  },
   {
     id: 'dashboard',
     label: 'Dashboard',
@@ -128,7 +137,7 @@ export const getNavGroupsForRole = (role?: UserRole): NavGroup[] => {
     {
       title: 'Operations',
       items: allowed.filter((item) =>
-        ['employees', 'attendance', 'projects', 'tasks'].includes(item.id)
+        ['employees', 'user-accounts', 'attendance', 'projects', 'tasks'].includes(item.id)
       ),
     },
     {

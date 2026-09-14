@@ -39,4 +39,23 @@ export const authService = {
       // Even if network or token is invalid on backend, proceed with local logout
     }
   },
+
+  async getUsers(): Promise<User[]> {
+    const response = await api.get<User[]>('/auth/users');
+    return response.data;
+  },
+
+  async createUser(data: RegisterData): Promise<User> {
+    const response = await api.post<User>('/auth/users', data);
+    return response.data;
+  },
+
+  async updateUser(id: number, data: Partial<RegisterData>): Promise<User> {
+    const response = await api.put<User>(`/auth/users/${id}`, data);
+    return response.data;
+  },
+
+  async deleteUser(id: number): Promise<void> {
+    await api.delete(`/auth/users/${id}`);
+  },
 };

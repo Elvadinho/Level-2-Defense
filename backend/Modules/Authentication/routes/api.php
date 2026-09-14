@@ -15,5 +15,9 @@ Route::prefix('auth')->group(function () {
     Route::middleware('auth:api')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/profile', [AuthController::class, 'profile']);
+        Route::get('/users', [AuthController::class, 'users']);
+        Route::post('/users', [AuthController::class, 'createUser']);
+        Route::put('/users/{user}', [AuthController::class, 'updateUser']);
+        Route::delete('/users/{user}', [AuthController::class, 'deleteUser']);
     });
 });

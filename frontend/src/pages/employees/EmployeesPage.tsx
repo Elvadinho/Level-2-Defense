@@ -42,6 +42,9 @@ export const EmployeesPage: React.FC = () => {
   const [formData, setFormData] = useState<CreateEmployeeData>({
     name: '',
     email: '',
+    user_id: undefined,
+    password: '',
+    password_confirmation: '',
     department_id: 1,
     job_title: '',
     salary: 1500000,
@@ -84,6 +87,9 @@ export const EmployeesPage: React.FC = () => {
     setFormData({
       name: '',
       email: '',
+      user_id: undefined,
+      password: '',
+      password_confirmation: '',
       department_id: departments[0]?.id || 1,
       job_title: '',
       salary: 1500000,
@@ -101,6 +107,9 @@ export const EmployeesPage: React.FC = () => {
     setFormData({
       name: emp.user?.name || '',
       email: emp.user?.email || '',
+      user_id: undefined,
+      password: '',
+      password_confirmation: '',
       department_id: emp.department_id,
       job_title: emp.job_title,
       salary: Number(emp.salary) || 0,
@@ -143,31 +152,15 @@ export const EmployeesPage: React.FC = () => {
           )
         );
       } else {
-        await employeeService.createEmployee(formData);
+        const createdEmployee = await employeeService.createEmployee(formData);
         setSuccessMessage('Employee added to directory.');
-        const newEmp: Employee = {
-          id: Date.now(),
-          user_id: Date.now(),
-          department_id: formData.department_id,
-          job_title: formData.job_title,
-          status: formData.status || 'active',
-          hire_date: formData.hire_date,
-          salary: formData.salary || 1500000,
-          created_at: new Date().toISOString(),
-          department: targetDept,
-          user: {
-            id: Date.now(),
-            name: formData.name,
-            email: formData.email,
-            role: (formData.role as any) || 'employee',
-            created_at: new Date().toISOString(),
-          },
-        };
-        setEmployees((prev) => [newEmp, ...prev]);
+        setEmployees((prev) => [createdEmployee, ...prev]);
       }
       setIsModalOpen(false);
-    } catch {
-      // Local optimistic fallback
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to save the employee record.';
+      setError(message);
+      // Never add a local-only employee: attendance requires a real linked account.
       if (editingEmployee) {
         setEmployees((prev) =>
           prev.map((emp) =>
@@ -188,30 +181,8 @@ export const EmployeesPage: React.FC = () => {
               : emp
           )
         );
-        setSuccessMessage('Employee record updated.');
-      } else {
-        const newEmp: Employee = {
-          id: Date.now(),
-          user_id: Date.now(),
-          department_id: formData.department_id,
-          job_title: formData.job_title,
-          status: formData.status || 'active',
-          hire_date: formData.hire_date,
-          salary: formData.salary || 1500000,
-          created_at: new Date().toISOString(),
-          department: targetDept,
-          user: {
-            id: Date.now(),
-            name: formData.name,
-            email: formData.email,
-            role: (formData.role as any) || 'employee',
-            created_at: new Date().toISOString(),
-          },
-        };
-        setEmployees((prev) => [newEmp, ...prev]);
-        setSuccessMessage('Employee added to directory.');
+        setSuccessMessage('Employee record updated locally. The server update could not be confirmed.');
       }
-      setIsModalOpen(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -510,13 +481,25 @@ export const EmployeesPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3.5">
+              {!editingEmployee && (
+                <div className="rounded-lg border border-[#05AD98]/30 bg-[#05AD98]/5 p-3">
+                  <Input
+                    label="Link Existing Account ID (optional)"
+                    type="number"
+                    placeholder="Find the ID in User Accounts"
+                    value={formData.user_id || ''}
+                    onChange={(e) => setFormData({ ...formData, user_id: e.target.value ? Number(e.target.value) : undefined })}
+                    helperText="Use this to give an existing sign-in account an employee profile for attendance scanning."
+                  />
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <Input
                   label="Full Name"
                   placeholder="e.g. Marc Ekwalla"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
+                  required={!formData.user_id}
                 />
                 <Input
                   label="Email Address"
@@ -524,9 +507,29 @@ export const EmployeesPage: React.FC = () => {
                   placeholder="marc@modoo.cm"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
+                  required={!formData.user_id}
                 />
               </div>
+
+              {!editingEmployee && !formData.user_id && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    label="Account Password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    helperText="At least 8 characters. The employee uses this to sign in."
+                    required
+                  />
+                  <Input
+                    label="Confirm Password"
+                    type="password"
+                    value={formData.password_confirmation}
+                    onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
