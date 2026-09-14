@@ -456,13 +456,13 @@ export const AttendancePage: React.FC = () => {
         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-2xs flex flex-col justify-between space-y-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Campus Geofence
+              Geofence
             </p>
             <h3 className="text-sm font-bold text-slate-900 mt-1 flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-[#05AD98]" /> Douala Tech Campus
+              <MapPin className="w-4 h-4 text-[#05AD98]" /> BBIT Jouvence
             </h3>
             <p className="text-xs text-slate-500 mt-1">
-              Geofence Radius: <strong>100 meters</strong>. Validated automatically via GPS coordinates during check-in.
+              Geofence Radius: <strong>50 meters</strong>. Validated automatically via GPS coordinates during check-in/out.
             </p>
           </div>
 

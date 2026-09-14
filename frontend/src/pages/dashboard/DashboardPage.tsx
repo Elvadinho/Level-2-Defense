@@ -6,7 +6,7 @@ import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { buildRoleDashboard, QUICK_ACTION_MODULES } from './dashboardData';
 import { AnalyticsCharts } from '../../components/dashboard/AnalyticsCharts';
-import { ArrowUpRight, ArrowRight, Inbox } from 'lucide-react';
+import { Activity, ArrowRight, Inbox } from 'lucide-react';
 
 /**
  * DashboardPage Component
@@ -36,9 +36,9 @@ export const DashboardPage: React.FC = () => {
   const allowedPaths = new Set(allowedModules.map((m) => m.path));
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-6">
       {/* Top Banner: Greeting & Role Overview */}
-      <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <Badge role={user?.role} size="md" />
@@ -79,6 +79,12 @@ export const DashboardPage: React.FC = () => {
         )}
       </div>
 
+      <div className="flex items-center gap-2 px-0.5 pt-1">
+        <Activity className="w-4 h-4 text-[#05AD98]" />
+        <h2 className="text-sm font-bold text-slate-900">Performance snapshot</h2>
+        <span className="text-[11px] text-slate-400">Your most important figures at a glance</span>
+      </div>
+
       {/* KPI Metric Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {dashboard.kpis.map((kpi) => {
@@ -86,17 +92,19 @@ export const DashboardPage: React.FC = () => {
           return (
             <div
               key={kpi.title}
-              className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs hover:shadow-xs hover:border-[#05AD98]/50 transition-all flex flex-col justify-between space-y-3"
+              className="group bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs hover:shadow-md hover:-translate-y-0.5 hover:border-[#05AD98]/40 transition-all flex flex-col justify-between space-y-3"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">{kpi.title}</span>
-                <div className={`p-2 rounded-lg ${kpi.bg} ${kpi.color}`}>
+                <div>
+                  <span className="text-xs font-semibold text-slate-500">{kpi.title}</span>
+                </div>
+                <div className={`p-2.5 rounded-xl ${kpi.bg} ${kpi.color} group-hover:scale-105 transition-transform`}>
                   <Icon className="w-4 h-4" />
                 </div>
               </div>
 
               <div>
-                <h3 className="text-xl font-bold text-slate-900 tracking-tight capitalize">{kpi.value}</h3>
+                <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight capitalize">{kpi.value}</h3>
                 <p className="text-[11px] text-slate-500 font-medium mt-0.5">{kpi.hint}</p>
               </div>
             </div>
@@ -104,8 +112,13 @@ export const DashboardPage: React.FC = () => {
         })}
       </div>
 
+      <div className="flex items-center gap-2 px-0.5 pt-1">
+        <h2 className="text-sm font-bold text-slate-900">Insights</h2>
+        <span className="text-[11px] text-slate-400">A visual view of the current workload and activity</span>
+      </div>
+
       {/* Analytics Charts */}
-      {dashboard.charts && <AnalyticsCharts charts={dashboard.charts} />}
+      <AnalyticsCharts charts={dashboard.charts} />
 
       {/* Role-specific operational panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -180,57 +193,6 @@ export const DashboardPage: React.FC = () => {
         })}
       </div>
 
-      {/* Odoo-style App Launcher Modules Grid */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">ERP Applications & Workspaces</h2>
-            <p className="text-xs text-slate-400">Launch business management modules assigned to your role</p>
-          </div>
-          <span className="text-xs font-semibold text-[#05AD98]">
-            {accessibleModules.length} Modules Available
-          </span>
-        </div>
-
-        {accessibleModules.length === 0 ? (
-          <div className="py-8 text-center space-y-2">
-            <Inbox className="w-7 h-7 mx-auto text-slate-300" />
-            <p className="text-sm font-semibold text-slate-700">No modules assigned yet</p>
-            <p className="text-xs text-slate-400">
-              Contact your administrator to get access to the workspaces you need.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
-            {accessibleModules.map((item) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => navigate(item.path)}
-                  className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:border-[#05AD98]/60 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between space-y-3"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#05AD98] group-hover:bg-[#05AD98] group-hover:text-white group-hover:border-[#05AD98] transition-all shadow-2xs">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-[#05AD98] transition-colors" />
-                  </div>
-
-                  <div>
-                    <h3 className="font-bold text-xs text-slate-900 group-hover:text-[#05AD98] transition-colors">
-                      {item.label}
-                    </h3>
-                    <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
-                      {item.description || `Manage ${item.label.toLowerCase()} workflows`}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
     </div>
   );
 };
