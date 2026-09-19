@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { attendanceService } from '../../services/attendanceService';
 import { AttendanceRecord, QrKioskPeriod } from '../../types/attendance';
@@ -18,6 +18,11 @@ import {
   ScanLine,
   AlertCircle,
   Download,
+  Wifi,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 
@@ -26,11 +31,19 @@ export const AttendancePage: React.FC = () => {
   const isAdminOrHR = user?.role === 'admin' || user?.role === 'hr_manager';
 
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [remoteRequests, setRemoteRequests] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isActionLoading, setIsActionLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
+  // HR Panels
+  const [isRemotePanelOpen, setIsRemotePanelOpen] = useState<boolean>(true);
 
   // QR Code Kiosk Modal (HR generates QR for display)
   const [qrSvg, setQrSvg] = useState<string | null>(null);
@@ -48,12 +61,25 @@ export const AttendancePage: React.FC = () => {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerContainerRef = useRef<string>('qr-reader-container');
 
+  // Remote Check-in Modal
+  const [showRemoteModal, setShowRemoteModal] = useState<boolean>(false);
+  const [remoteReason, setRemoteReason] = useState<string>('');
+  const [remoteLoading, setRemoteLoading] = useState<boolean>(false);
+
+  // Reject Remote Request Modal
+  const [showRejectModal, setShowRejectModal] = useState<boolean>(false);
+  const [rejectId, setRejectId] = useState<number | null>(null);
+  const [rejectReason, setRejectReason] = useState<string>('');
+
   // Today's status determination
   const todayStr = new Date().toISOString().split('T')[0];
   const todayRecord = records.find(
-    (r) =>
-      (r.date && r.date.startsWith(todayStr)) ||
-      (r.created_at && r.created_at.startsWith(todayStr))
+    (r) => {
+      // Safely check if r.date exists before calling startsWith
+      const hasDateStr = r.date && typeof r.date === 'string' && r.date.startsWith(todayStr);
+      const hasCreatedAtStr = r.created_at && typeof r.created_at === 'string' && r.created_at.startsWith(todayStr);
+      return hasDateStr || hasCreatedAtStr;
+    }
   );
 
   const isCheckedIn = Boolean(
@@ -62,14 +88,21 @@ export const AttendancePage: React.FC = () => {
   const isCompletedToday = Boolean(
     todayRecord && (todayRecord.check_in_time || todayRecord.check_in) && (todayRecord.check_out_time || todayRecord.check_out)
   );
+  const isPendingRemote = Boolean(
+    todayRecord && todayRecord.is_remote && todayRecord.remote_status === 'pending'
+  );
 
   const fetchAttendance = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       if (isAdminOrHR) {
-        const data = await attendanceService.getAllAttendance();
+        const [data, requestsData] = await Promise.all([
+          attendanceService.getAllAttendance(),
+          attendanceService.getRemoteRequests()
+        ]);
         setRecords(Array.isArray(data) ? data : []);
+        setRemoteRequests(Array.isArray(requestsData) ? requestsData : []);
       } else {
         const data = await attendanceService.getMyHistory();
         setRecords(Array.isArray(data) ? data : []);
@@ -114,7 +147,7 @@ export const AttendancePage: React.FC = () => {
         qr_code: qrCode,
       });
       setSuccessMessage('Checked in successfully!');
-      fetchAttendance();
+      await fetchAttendance();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Check-in failed. Please try again.';
       setError(message);
@@ -136,13 +169,86 @@ export const AttendancePage: React.FC = () => {
         qr_code: qrCode,
       });
       setSuccessMessage('Checked out successfully!');
-      fetchAttendance();
+      await fetchAttendance();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Check-out failed. Please try again.';
       setError(message);
       throw err;
     } finally {
       setIsActionLoading(false);
+    }
+  };
+
+  const handleRemoteCheckIn = async () => {
+    if (!remoteReason.trim()) {
+      setError('Please provide a reason for remote check-in.');
+      return;
+    }
+
+    setRemoteLoading(true);
+    setError(null);
+    try {
+      let coords: { latitude?: number; longitude?: number } = {};
+      try {
+        coords = await getCoordinates();
+      } catch (err) {
+        console.warn('Could not get coordinates for remote check-in', err);
+      }
+
+      const res = await attendanceService.requestRemoteCheckIn({
+        reason: remoteReason,
+        ...coords
+      });
+      
+      setSuccessMessage(res.message || 'Remote check-in request submitted.');
+      setShowRemoteModal(false);
+      setRemoteReason('');
+      await fetchAttendance();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Remote check-in failed.');
+    } finally {
+      setRemoteLoading(false);
+    }
+  };
+
+  // ── HR Actions ──
+  const handleApproveRemote = async (id: number) => {
+    setIsActionLoading(true);
+    try {
+      await attendanceService.approveRemoteRequest(id);
+      setSuccessMessage('Remote check-in approved.');
+      await fetchAttendance();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Approval failed.');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleRejectRemote = async () => {
+    if (!rejectId || !rejectReason.trim()) return;
+    
+    setIsActionLoading(true);
+    try {
+      await attendanceService.rejectRemoteRequest(rejectId, rejectReason);
+      setSuccessMessage('Remote check-in rejected.');
+      setShowRejectModal(false);
+      setRejectReason('');
+      setRejectId(null);
+      await fetchAttendance();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Rejection failed.');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleExportCsv = async () => {
+    try {
+      await attendanceService.exportCsv();
+      setSuccessMessage('Attendance exported successfully.');
+    } catch (err) {
+      setError('Failed to export CSV.');
     }
   };
 
@@ -162,18 +268,17 @@ export const AttendancePage: React.FC = () => {
   const stopScanning = async () => {
     if (scannerRef.current) {
       try {
-        await scannerRef.current.stop();
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop();
+        }
         scannerRef.current.clear();
-      } catch {
-        // Already stopped or cleared
+      } catch (e) {
+        // Ignore stop errors
       }
       scannerRef.current = null;
     }
   };
 
-  // Actually launch the camera once the scanner container div has committed
-  // to the DOM (i.e. after the 'scanning' state has rendered), so html5-qrcode
-  // never fails with "HTML Element with id=... not found".
   useEffect(() => {
     if (scannerStatus !== 'scanning') {
       return;
@@ -195,26 +300,34 @@ export const AttendancePage: React.FC = () => {
           if (cancelled) return;
           cancelled = true;
 
-          html5QrCode
-            .stop()
-            .catch(() => {})
-            .finally(async () => {
-              scannerRef.current = null;
-              setScannerStatus('success');
-              setScannerMessage('QR code verified! Processing your attendance...');
+          try {
+            html5QrCode.stop().catch(() => {});
+          } catch (e) {
+            // ignore
+          }
 
-              try {
-                if (scannerAction === 'check-in') {
-                  await executeCheckIn(decodedText);
-                } else {
-                  await executeCheckOut(decodedText);
-                }
-                setTimeout(() => setShowScannerModal(false), 1500);
-              } catch {
-                setScannerStatus('error');
-                setScannerMessage('Could not record your attendance with this QR code. Please try again.');
+          scannerRef.current = null;
+          setScannerStatus('success');
+          setScannerMessage('QR code verified! Processing your attendance...');
+
+          (async () => {
+            try {
+              if (scannerAction === 'check-in') {
+                await executeCheckIn(decodedText);
+              } else {
+                await executeCheckOut(decodedText);
               }
-            });
+              
+              // Keep the success state visible for a moment before closing
+              setTimeout(() => {
+                setShowScannerModal(false);
+                setScannerStatus('idle');
+              }, 1500);
+            } catch {
+              setScannerStatus('error');
+              setScannerMessage('Could not record your attendance with this QR code. Please try again.');
+            }
+          })();
         },
         () => {
           // Scan frame with no QR found — keep scanning silently
@@ -236,32 +349,35 @@ export const AttendancePage: React.FC = () => {
 
     return () => {
       cancelled = true;
-      html5QrCode
-        .stop()
-        .catch(() => {})
-        .finally(() => {
-          try {
-            html5QrCode.clear();
-          } catch {
-            // Already cleared
-          }
-        });
+      try {
+        if (html5QrCode.isScanning) {
+          html5QrCode.stop().catch(() => {}).finally(() => {
+            try { html5QrCode.clear(); } catch {}
+          });
+        } else {
+          try { html5QrCode.clear(); } catch {}
+        }
+      } catch (e) {
+        // Ignore synchronous throw
+      }
       scannerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scannerStatus]);
 
   const closeScannerModal = async () => {
-    await stopScanning();
+    // Hide the modal immediately for better UX
     setShowScannerModal(false);
     setScannerStatus('idle');
     setScannerMessage('');
+    // Then stop the camera in the background
+    await stopScanning();
   };
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      stopScanning();
+      stopScanning().catch(() => {});
     };
   }, []);
 
@@ -287,8 +403,6 @@ export const AttendancePage: React.FC = () => {
 
   const handleDownloadQr = () => {
     if (!qrSvg) return;
-    // XML declarations are only valid as the first bytes of an SVG file.
-    // Remove any whitespace/BOM added before the response reaches the browser.
     const cleanSvg = qrSvg.replace(/^\uFEFF?\s*/, '');
     const blob = new Blob([cleanSvg], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -307,16 +421,70 @@ export const AttendancePage: React.FC = () => {
     { value: 'month', label: '1 Month' },
   ];
 
-  const filteredRecords = records.filter((r) => {
-    const empName = r.employee?.user?.name || '';
-    const location = r.location || '';
-    const dateStr = r.date || '';
-    return (
-      empName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      dateStr.includes(searchQuery)
-    );
-  });
+  // ── Data Processing & Pagination ──
+  const filteredRecords = useMemo(() => {
+    return records.filter((r) => {
+      const empName = r.employee?.user?.name || '';
+      const location = r.location || (r.is_remote ? 'Remote' : 'Office');
+      
+      let dateStr = '';
+      if (r.date && typeof r.date === 'string') {
+        dateStr = r.date;
+      } else if (r.created_at && typeof r.created_at === 'string') {
+        dateStr = r.created_at.substring(0, 10);
+      }
+      
+      return (
+        empName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        dateStr.includes(searchQuery)
+      );
+    });
+  }, [records, searchQuery]);
+
+  const totalPages = Math.ceil(filteredRecords.length / pageSize) || 1;
+  
+  // Ensure current page is valid when filtering changes
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
+  const paginatedRecords = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredRecords.slice(startIndex, startIndex + pageSize);
+  }, [filteredRecords, currentPage, pageSize]);
+
+  // Format date helper
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return '—';
+    // If it's already YYYY-MM-DD, just return it
+    if (dateString.length === 10 && dateString.includes('-')) return dateString;
+    // Otherwise try to extract YYYY-MM-DD
+    try {
+      return new Date(dateString).toISOString().split('T')[0];
+    } catch {
+      return String(dateString).substring(0, 10);
+    }
+  };
+
+  // Calculate duration helper
+  const calculateDuration = (inTime?: string | null, outTime?: string | null) => {
+    if (!inTime || !outTime) return '—';
+    try {
+      const start = new Date(`2000-01-01T${inTime}`);
+      const end = new Date(`2000-01-01T${outTime}`);
+      const diffMs = end.getTime() - start.getTime();
+      if (isNaN(diffMs) || diffMs < 0) return '—';
+      
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      return `${hours}h ${mins}m`;
+    } catch {
+      return '—';
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -330,23 +498,33 @@ export const AttendancePage: React.FC = () => {
             <span className="text-xs text-slate-400 font-medium">({filteredRecords.length} records)</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {isAdminOrHR && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleOpenQrModal}
-                leftIcon={<QrCode className="w-3.5 h-3.5 text-[#05AD98]" />}
-              >
-                Display QR Kiosk
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOpenQrModal}
+                  leftIcon={<QrCode className="w-3.5 h-3.5 text-[#05AD98]" />}
+                >
+                  QR Kiosk
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportCsv}
+                  leftIcon={<Download className="w-3 h-3" />}
+                >
+                  Export CSV
+                </Button>
+              </>
             )}
 
             <Button
               variant="outline"
               size="sm"
               onClick={fetchAttendance}
-              leftIcon={<RefreshCw className="w-3 h-3" />}
+              leftIcon={<RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />}
             >
               Refresh
             </Button>
@@ -382,9 +560,71 @@ export const AttendancePage: React.FC = () => {
         />
       )}
 
+      {/* Admin/HR Pending Remote Requests Panel */}
+      {isAdminOrHR && remoteRequests.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl overflow-hidden shadow-xs">
+          <button 
+            className="w-full px-4 py-3 flex items-center justify-between text-left focus:outline-none"
+            onClick={() => setIsRemotePanelOpen(!isRemotePanelOpen)}
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xs">
+                {remoteRequests.length}
+              </div>
+              <span className="font-semibold text-sm text-amber-900">Pending Remote Check-in Requests</span>
+            </div>
+            {isRemotePanelOpen ? <ChevronUp className="w-4 h-4 text-amber-700" /> : <ChevronDown className="w-4 h-4 text-amber-700" />}
+          </button>
+          
+          {isRemotePanelOpen && (
+            <div className="border-t border-amber-200 p-4 space-y-3 bg-white">
+              {remoteRequests.map(req => (
+                <div key={req.id} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-3 border border-slate-100 rounded-lg bg-slate-50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600 text-xs">
+                      {req.employee?.user?.name?.charAt(0) || 'E'}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-sm text-slate-900">{req.employee?.user?.name || `Staff #${req.employee_id}`}</div>
+                      <div className="text-xs text-slate-500">Date: {formatDate(req.date)}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 bg-white p-2 rounded border border-slate-200 text-xs italic text-slate-600">
+                    "{req.remote_reason}"
+                  </div>
+                  
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button 
+                      variant="primary" 
+                      size="sm" 
+                      onClick={() => handleApproveRemote(req.id)}
+                      isLoading={isActionLoading}
+                    >
+                      Approve
+                    </Button>
+                    <Button 
+                      variant="danger" 
+                      size="sm" 
+                      onClick={() => {
+                        setRejectId(req.id);
+                        setShowRejectModal(true);
+                      }}
+                      disabled={isActionLoading}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Daily Punch Widget & Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Action Punch Card — Now uses QR Scanner */}
+        {/* Action Punch Card */}
         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-2xs flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -404,9 +644,13 @@ export const AttendancePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs text-slate-600 flex items-center justify-between">
-            <span>Status Today:</span>
-            {isCompletedToday ? (
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs flex items-center justify-between">
+            <span className="text-slate-600">Status Today:</span>
+            {isPendingRemote ? (
+              <span className="font-semibold text-amber-600 flex items-center gap-1">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Pending Approval
+              </span>
+            ) : isCompletedToday ? (
               <span className="font-semibold text-emerald-600 flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Shift Completed
               </span>
@@ -419,20 +663,28 @@ export const AttendancePage: React.FC = () => {
             )}
           </div>
 
-          <div>
-            {!isCheckedIn && !isCompletedToday && (
-              <Button
-                variant="primary"
-                onClick={() => openScanner('check-in')}
-                isLoading={isActionLoading}
-                leftIcon={<Camera className="w-4 h-4" />}
-                className="w-full justify-center"
-              >
-                Scan QR to Clock In
-              </Button>
+          <div className="space-y-2">
+            {!isCheckedIn && !isCompletedToday && !isPendingRemote && (
+              <>
+                <Button
+                  variant="primary"
+                  onClick={() => openScanner('check-in')}
+                  isLoading={isActionLoading}
+                  leftIcon={<Camera className="w-4 h-4" />}
+                  className="w-full justify-center"
+                >
+                  Scan QR to Clock In
+                </Button>
+                <button
+                  onClick={() => setShowRemoteModal(true)}
+                  className="w-full py-2 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Wifi className="w-3.5 h-3.5" /> Request Remote Check-in
+                </button>
+              </>
             )}
 
-            {isCheckedIn && (
+            {isCheckedIn && !isCompletedToday && (
               <Button
                 variant="danger"
                 onClick={() => openScanner('check-out')}
@@ -449,6 +701,12 @@ export const AttendancePage: React.FC = () => {
                 Completed for Today
               </Button>
             )}
+            
+            {isPendingRemote && (
+              <div className="text-xs text-center text-slate-500 py-1 border border-dashed border-slate-200 rounded p-2">
+                Your remote check-in request is pending HR approval.
+              </div>
+            )}
           </div>
         </div>
 
@@ -456,19 +714,19 @@ export const AttendancePage: React.FC = () => {
         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-2xs flex flex-col justify-between space-y-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Geofence
+              Location Security
             </p>
             <h3 className="text-sm font-bold text-slate-900 mt-1 flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-[#05AD98]" /> BBIT Jouvence
+              <MapPin className="w-4 h-4 text-[#05AD98]" /> Geofence & GPS
             </h3>
             <p className="text-xs text-slate-500 mt-1">
-              Geofence Radius: <strong>50 meters</strong>. Validated automatically via GPS coordinates during check-in/out.
+              Validates your presence at the office. Remote check-ins require authorization or HR approval.
             </p>
           </div>
 
           <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>GPS positioning active and calibrated</span>
+            <span>GPS positioning active</span>
           </div>
         </div>
 
@@ -476,7 +734,7 @@ export const AttendancePage: React.FC = () => {
         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-2xs flex flex-col justify-between space-y-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Today's Overview
+              Your History
             </p>
             <h3 className="text-2xl font-black text-slate-900 mt-1">
               {records.length} <span className="text-xs font-normal text-slate-400">entries recorded</span>
@@ -501,71 +759,150 @@ export const AttendancePage: React.FC = () => {
       </div>
 
       {/* Attendance History Table */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-        {isLoading ? (
+      <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden flex flex-col">
+        {isLoading && records.length === 0 ? (
           <div className="p-16 text-center text-slate-500 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-7 h-7 animate-spin text-[#05AD98]" />
             <p className="text-xs font-medium">Loading attendance records...</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
-                <tr>
-                  <th className="px-4 py-3">Employee</th>
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Clock In</th>
-                  <th className="px-4 py-3">Clock Out</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Location</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredRecords.map((rec) => (
-                  <tr key={rec.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-4 py-3 font-semibold text-slate-900 flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-[#05AD98]">
-                        {rec.employee?.user?.name ? rec.employee.user.name.charAt(0).toUpperCase() : 'E'}
-                      </div>
-                      <div>
-                        <div>{rec.employee?.user?.name || `Staff #${rec.employee_id}`}</div>
-                        <div className="text-[10px] text-slate-400 font-normal">{rec.employee?.job_title}</div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {rec.date || (rec.created_at ? rec.created_at.substring(0, 10) : '—')}
-                    </td>
-                    <td className="px-4 py-3 font-mono font-medium text-slate-800">
-                      {rec.check_in_time || rec.check_in || '—'}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-slate-500">
-                      {rec.check_out_time || rec.check_out || '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge
-                        variant={
-                          rec.status === 'present'
-                            ? 'success'
-                            : rec.status === 'late'
-                            ? 'warning'
-                            : 'silver'
-                        }
-                        size="sm"
-                      >
-                        {rec.status || 'present'}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-slate-400" />
-                        {rec.location || 'Douala HQ'}
-                      </span>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
+                  <tr>
+                    <th className="px-4 py-3">Employee</th>
+                    <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3">Clock In</th>
+                    <th className="px-4 py-3">Clock Out</th>
+                    <th className="px-4 py-3">Hours</th>
+                    <th className="px-4 py-3">Location</th>
+                    <th className="px-4 py-3">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {paginatedRecords.length > 0 ? (
+                    paginatedRecords.map((rec) => {
+                      const empName = rec.employee?.user?.name || `Staff #${rec.employee_id}`;
+                      const isPending = rec.is_remote && rec.remote_status === 'pending';
+                      
+                      return (
+                        <tr key={rec.id} className={`hover:bg-slate-50/80 transition-colors ${isPending ? 'bg-amber-50/30' : ''}`}>
+                          <td className="px-4 py-3 font-semibold text-slate-900 flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-[#05AD98] shrink-0">
+                              {empName.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="truncate">{empName}</div>
+                              {isAdminOrHR && rec.employee?.job_title && (
+                                <div className="text-[10px] text-slate-400 font-normal truncate">{rec.employee.job_title}</div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
+                            {formatDate(rec.date || rec.created_at)}
+                          </td>
+                          <td className="px-4 py-3 font-mono font-medium text-slate-800 whitespace-nowrap">
+                            {rec.check_in_time || rec.check_in || '—'}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-slate-500 whitespace-nowrap">
+                            {rec.check_out_time || rec.check_out || '—'}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-slate-500 whitespace-nowrap">
+                            {calculateDuration(rec.check_in_time, rec.check_out_time)}
+                          </td>
+                          <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
+                            {rec.is_remote ? (
+                              <span className="flex items-center gap-1 text-indigo-600 font-medium">
+                                <Wifi className="w-3 h-3" />
+                                Remote
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-slate-400" />
+                                {rec.location || 'Office HQ'}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {isPending ? (
+                              <Badge variant="warning" size="sm">Pending HR</Badge>
+                            ) : rec.is_remote && rec.remote_status === 'rejected' ? (
+                              <Badge variant="danger" size="sm">Rejected</Badge>
+                            ) : (
+                              <Badge
+                                variant={
+                                  rec.status === 'present'
+                                    ? 'success'
+                                    : rec.status === 'late'
+                                    ? 'warning'
+                                    : rec.status === 'absent'
+                                    ? 'danger'
+                                    : 'silver'
+                                }
+                                size="sm"
+                              >
+                                {rec.status || 'present'}
+                              </Badge>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-slate-500 text-xs">
+                        No attendance records found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500">Rows per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="text-xs border border-slate-200 rounded p-1 bg-white focus:outline-none focus:border-[#05AD98]"
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <span className="text-xs text-slate-500">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="p-1 rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50 disabled:hover:bg-transparent"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="p-1 rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50 disabled:hover:bg-transparent"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -648,7 +985,7 @@ export const AttendancePage: React.FC = () => {
                 onClick={() => setShowQrModal(false)}
                 className="flex-1 justify-center"
               >
-                Close Kiosk
+                Close
               </Button>
             </div>
           </div>
@@ -797,6 +1134,108 @@ export const AttendancePage: React.FC = () => {
                   </Button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════ REMOTE CHECK-IN MODAL ═══════════ */}
+      {showRemoteModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-sm w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <Wifi className="w-4 h-4 text-indigo-600" />
+                Remote Check-in
+              </h3>
+              <button
+                onClick={() => setShowRemoteModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              Please provide a reason for checking in remotely. If you are not authorized, your request will be sent to HR for approval.
+            </p>
+
+            <textarea
+              value={remoteReason}
+              onChange={(e) => setRemoteReason(e.target.value)}
+              placeholder="e.g. Working from client site..."
+              rows={3}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-indigo-500 focus:outline-none resize-none"
+            />
+
+            <div className="flex items-center gap-2 pt-2">
+              <Button
+                variant="primary"
+                onClick={handleRemoteCheckIn}
+                isLoading={remoteLoading}
+                className="flex-1 justify-center"
+              >
+                Submit Request
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setShowRemoteModal(false)}
+                disabled={remoteLoading}
+                className="flex-1 justify-center"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════ REJECT MODAL (HR) ═══════════ */}
+      {showRejectModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-sm w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <X className="w-4 h-4 text-rose-600" />
+                Reject Check-in
+              </h3>
+              <button
+                onClick={() => setShowRejectModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              Please provide a reason for rejecting this remote check-in request.
+            </p>
+
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Please use the office QR code..."
+              rows={3}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-rose-500 focus:outline-none resize-none"
+            />
+
+            <div className="flex items-center gap-2 pt-2">
+              <Button
+                variant="danger"
+                onClick={handleRejectRemote}
+                isLoading={isActionLoading}
+                className="flex-1 justify-center"
+              >
+                Reject Request
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setShowRejectModal(false)}
+                disabled={isActionLoading}
+                className="flex-1 justify-center"
+              >
+                Cancel
+              </Button>
             </div>
           </div>
         </div>

@@ -28,7 +28,7 @@ class EmployeeRequest extends FormRequest
             'user_id' => ['nullable', 'exists:users,id', Rule::unique('employees', 'user_id')->ignore($employee?->id)],
             'name' => [$creating && !$linkingExistingUser ? 'required' : 'sometimes', 'nullable', 'string', 'max:255'],
             'email' => [$creating && !$linkingExistingUser ? 'required' : 'sometimes', 'nullable', 'email', 'max:255', ...($linkingExistingUser ? [] : [Rule::unique('users', 'email')->ignore($employee?->user_id)])],
-            'password' => [$creating && !$linkingExistingUser ? 'required' : 'nullable', 'nullable', 'string', 'confirmed', Password::defaults()],
+            'password' => [$creating && !$linkingExistingUser ? 'required' : 'nullable', 'string', 'confirmed', Password::defaults()],
             'role' => ['sometimes', 'string', new \Illuminate\Validation\Rules\Enum(\Modules\Authentication\Enums\Role::class)],
             'department_id' => ['required', 'exists:departments,id'],
             'job_title' => ['required', 'string', 'max:255'],

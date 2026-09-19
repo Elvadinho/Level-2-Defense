@@ -33,7 +33,7 @@ class AttendanceApiTest extends TestCase
             'department_id' => $department->id,
             'job_title' => 'Software Engineer',
             'employment_status' => 'active',
-            'hire_date' => '2026-01-01'
+            'hire_date' => '2026-01-01',
         ]);
     }
 
@@ -41,7 +41,8 @@ class AttendanceApiTest extends TestCase
     {
         $this->actingAs($this->employeeUser, 'api');
 
-        $qrCode = app(AttendanceService::class)->generateQrToken();
+        $qrData = app(AttendanceService::class)->generateQrToken();
+        $qrCode = $qrData['token'];
 
         $response = $this->postJson('/api/attendance/check-in', [
             'latitude' => 3.8452,
@@ -66,10 +67,11 @@ class AttendanceApiTest extends TestCase
         $attendanceService = app(AttendanceService::class);
 
         // First check in
+        $qrData = $attendanceService->generateQrToken();
         $response1 = $this->postJson('/api/attendance/check-in', [
             'latitude' => 3.8452,
             'longitude' => 11.4861,
-            'qr_code' => $attendanceService->generateQrToken(),
+            'qr_code' => $qrData['token'],
         ]);
 
         if ($response1->status() !== 201) {
@@ -77,10 +79,11 @@ class AttendanceApiTest extends TestCase
         }
 
         // Then check out
+        $qrDataOut = $attendanceService->generateQrToken();
         $response = $this->postJson('/api/attendance/check-out', [
             'latitude' => 3.8453,
             'longitude' => 11.4862,
-            'qr_code' => $attendanceService->generateQrToken(),
+            'qr_code' => $qrDataOut['token'],
         ]);
 
         $response->assertStatus(200)

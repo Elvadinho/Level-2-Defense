@@ -2,13 +2,16 @@
 
 namespace Modules\Attendance\Services;
 
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Modules\Attendance\Enums\AttendanceStatus;
 use Modules\Attendance\Models\Attendance;
 use Modules\Employee\Models\Employee;
+use Modules\Notification\Services\NotificationService;
 use Illuminate\Database\Eloquent\Collection;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttendanceService
 {
@@ -19,6 +22,10 @@ class AttendanceService
         'week' => 604800,
         'month' => 2592000,
     ];
+
+    public function __construct(
+        private readonly NotificationService $notificationService
+    ) {}
 
     /**
      * Generate a new random office QR token valid for the given period
@@ -85,7 +92,7 @@ class AttendanceService
             'date' => $today,
             'check_in_time' => Carbon::now()->toTimeString(),
             'status' => $status->value,
-            'check_in_distance' => $distance, // <-- Add this line
+            'check_in_distance' => $distance,
             'check_in_latitude' => $latitude,
             'check_in_longitude' => $longitude,
         ]);
@@ -116,7 +123,7 @@ class AttendanceService
 
         $attendance->update([
             'check_out_time' => Carbon::now()->toTimeString(),
-            'check_out_distance' => $distance, // <-- Add this line
+            'check_out_distance' => $distance,
             'check_out_latitude' => $latitude,
             'check_out_longitude' => $longitude,
         ]);
@@ -124,21 +131,243 @@ class AttendanceService
         return $attendance;
     }
 
-    //  Get attendance history for a specific employee
-    public function getHistoryByEmployee(int $employee): Collection
+    // ── Remote Check-in ──────────────────────────────────────────────
+
+    /**
+     * Request a remote check-in. If the employee's user has the
+     * remote_checkin_authorized flag set, the check-in is approved
+     * immediately. Otherwise, a pending attendance record is created
+     * and a fraud alert notification is sent to all HR managers.
+     */
+    public function remoteCheckIn(Employee $employee, string $reason, ?float $latitude = null, ?float $longitude = null): Attendance
     {
-        return Attendance::where('employee_id', $employee)
+        $today = Carbon::today()->toDateString();
+
+        // Prevent double check-in
+        $existing = Attendance::where('employee_id', $employee->id)
+            ->whereDate('date', $today)
+            ->first();
+
+        if ($existing) {
+            throw new \RuntimeException('You already have an attendance record for today.');
+        }
+
+        $user = $employee->user;
+        $isAuthorized = $user && $user->remote_checkin_authorized;
+
+        $lateHour = (int)env('ATTENDANCE_LATE_HOUR', 8);
+        $status = Carbon::now()->hour >= $lateHour ? AttendanceStatus::LATE : AttendanceStatus::PRESENT;
+
+        $attendance = Attendance::create([
+            'employee_id' => $employee->id,
+            'date' => $today,
+            'check_in_time' => Carbon::now()->toTimeString(),
+            'status' => $isAuthorized ? $status->value : 'present',
+            'is_remote' => true,
+            'remote_reason' => $reason,
+            'remote_status' => $isAuthorized ? 'approved' : 'pending',
+            'check_in_latitude' => $latitude,
+            'check_in_longitude' => $longitude,
+        ]);
+
+        if (!$isAuthorized) {
+            // Send fraud alert to all HR managers and admins
+            $this->notifyHrOfUnauthorizedRemote($employee, $reason);
+        }
+
+        return $attendance->load('employee.user');
+    }
+
+    /**
+     * Notify all HR managers / admins about an unauthorized remote check-in attempt.
+     */
+    private function notifyHrOfUnauthorizedRemote(Employee $employee, string $reason): void
+    {
+        $userName = $employee->user?->name ?? "Employee #{$employee->id}";
+
+        $hrUsers = User::where(function ($q) {
+            $q->where('role', 'hr_manager')
+              ->orWhere('role', 'admin');
+        })->pluck('id')->toArray();
+
+        if (empty($hrUsers)) {
+            return;
+        }
+
+        $this->notificationService->sendToUsers(
+            $hrUsers,
+            'attendance_fraud_alert',
+            '⚠️ Unauthorized Remote Check-in Attempt',
+            "{$userName} attempted a remote check-in without authorization. Reason given: \"{$reason}\". Please review and approve or reject this request from the Attendance module.",
+            [
+                'employee_id' => $employee->id,
+                'employee_name' => $userName,
+                'reason' => $reason,
+                'date' => Carbon::today()->toDateString(),
+            ],
+            'in_app'
+        );
+    }
+
+    /**
+     * Get all pending remote check-in requests (HR / Admin).
+     */
+    public function getPendingRemoteRequests(): Collection
+    {
+        return Attendance::with(['employee.user', 'approver'])
+            ->where('is_remote', true)
+            ->where('remote_status', 'pending')
             ->orderBy('date', 'desc')
             ->get();
     }
 
-    //  Get all attendance records(HR / Admin)
+    /**
+     * Approve a remote check-in request.
+     */
+    public function approveRemoteRequest(int $attendanceId, User $approver): Attendance
+    {
+        $attendance = Attendance::findOrFail($attendanceId);
+
+        if (!$attendance->is_remote || $attendance->remote_status !== 'pending') {
+            throw new \RuntimeException('This record is not a pending remote check-in request.');
+        }
+
+        $attendance->update([
+            'remote_status' => 'approved',
+            'remote_approved_by' => $approver->id,
+        ]);
+
+        // Notify the employee that their request was approved
+        $employeeUser = $attendance->employee?->user;
+        if ($employeeUser) {
+            $this->notificationService->send(
+                $employeeUser,
+                'remote_checkin_approved',
+                '✅ Remote Check-in Approved',
+                "Your remote check-in request for {$attendance->date->format('M d, Y')} has been approved by {$approver->name}.",
+                ['attendance_id' => $attendance->id],
+                'in_app'
+            );
+        }
+
+        return $attendance->load(['employee.user', 'approver']);
+    }
+
+    /**
+     * Reject a remote check-in request and remove the attendance record.
+     */
+    public function rejectRemoteRequest(int $attendanceId, User $rejector, string $reason): Attendance
+    {
+        $attendance = Attendance::findOrFail($attendanceId);
+
+        if (!$attendance->is_remote || $attendance->remote_status !== 'pending') {
+            throw new \RuntimeException('This record is not a pending remote check-in request.');
+        }
+
+        $attendance->update([
+            'remote_status' => 'rejected',
+            'remote_approved_by' => $rejector->id,
+            'remote_rejection_reason' => $reason,
+            'status' => AttendanceStatus::ABSENT->value,
+            'check_in_time' => null,
+        ]);
+
+        // Notify the employee that their request was rejected
+        $employeeUser = $attendance->employee?->user;
+        if ($employeeUser) {
+            $this->notificationService->send(
+                $employeeUser,
+                'remote_checkin_rejected',
+                '❌ Remote Check-in Rejected',
+                "Your remote check-in request for {$attendance->date->format('M d, Y')} was rejected by {$rejector->name}. Reason: {$reason}",
+                ['attendance_id' => $attendance->id, 'reason' => $reason],
+                'in_app'
+            );
+        }
+
+        return $attendance->load(['employee.user', 'approver']);
+    }
+
+    // ── Queries ───────────────────────────────────────────────────────
+
+    /**
+     * Get attendance history for a specific employee (with relationships).
+     */
+    public function getHistoryByEmployee(int $employee): Collection
+    {
+        return Attendance::with('employee.user')
+            ->where('employee_id', $employee)
+            ->orderBy('date', 'desc')
+            ->get();
+    }
+
+    /**
+     * Get all attendance records (HR / Admin).
+     */
     public function getAll(): Collection
     {
         return Attendance::with('employee.user')
             ->orderBy('date', 'desc')
             ->get();
     }
+
+    // ── CSV Export ────────────────────────────────────────────────────
+
+    /**
+     * Generate a CSV export of all attendance records (HR / Admin).
+     */
+    public function exportCsv(): StreamedResponse
+    {
+        $records = Attendance::with('employee.user')
+            ->orderBy('date', 'desc')
+            ->get();
+
+        return response()->streamDownload(function () use ($records) {
+            $handle = fopen('php://output', 'w');
+
+            // Header row
+            fputcsv($handle, [
+                'Employee',
+                'Date',
+                'Clock In',
+                'Clock Out',
+                'Work Hours',
+                'Status',
+                'Remote',
+                'Remote Status',
+                'Distance (m)',
+            ]);
+
+            foreach ($records as $record) {
+                $employeeName = $record->employee?->user?->name ?? "Staff #{$record->employee_id}";
+                $workHours = '';
+                if ($record->check_in_time && $record->check_out_time) {
+                    $checkIn = Carbon::parse($record->check_in_time);
+                    $checkOut = Carbon::parse($record->check_out_time);
+                    $diff = $checkIn->diff($checkOut);
+                    $workHours = sprintf('%dh %dm', $diff->h, $diff->i);
+                }
+
+                fputcsv($handle, [
+                    $employeeName,
+                    $record->date?->format('Y-m-d') ?? '',
+                    $record->check_in_time ?? '',
+                    $record->check_out_time ?? '',
+                    $workHours,
+                    $record->status?->value ?? '',
+                    $record->is_remote ? 'Yes' : 'No',
+                    $record->remote_status ?? '',
+                    $record->check_in_distance ?? '',
+                ]);
+            }
+
+            fclose($handle);
+        }, 'attendance-export-' . now()->format('Y-m-d') . '.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    // ── Geolocation Verification ─────────────────────────────────────
 
     /**
      * Verify that the given GPS coordinates are within the allowed
@@ -148,8 +377,6 @@ class AttendanceService
      * between two points on Earth.
      *
      * @throws \RuntimeException if too far from office
-     */
-    /**
      * @return float The distance in meters
      */
     private function verifyLocation(float $latitude, float $longitude): float
@@ -166,7 +393,7 @@ class AttendanceService
             );
         }
 
-        return $distance; // <-- We return it now!
+        return $distance;
     }
 
 

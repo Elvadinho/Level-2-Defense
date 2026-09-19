@@ -419,7 +419,7 @@ class AIAssistantController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(min($perPage, 50));
 
-        return response()->json($history->items()->map(fn (AgentRequest $agentRequest) => [
+        return response()->json(collect($history->items())->map(fn (AgentRequest $agentRequest) => [
             'id' => $agentRequest->id,
             'user_id' => $agentRequest->user_id,
             'user_input' => $agentRequest->user_input,

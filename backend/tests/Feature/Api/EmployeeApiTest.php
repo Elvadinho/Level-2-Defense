@@ -17,8 +17,8 @@ class EmployeeApiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        // Create a user and authenticate
-        $this->user = User::factory()->create();
+        // Create an admin user and authenticate
+        $this->user = User::factory()->create(['role' => 'admin']);
         $this->actingAs($this->user, 'api');
     }
 
@@ -47,7 +47,7 @@ class EmployeeApiTest extends TestCase
             'department_id' => $department->id,
             'job_title' => 'HR Manager',
             'hire_date' => '2026-01-01',
-            'employment_status' => 'active'
+            'employment_status' => 'active',
         ]);
 
         $response->assertStatus(201)
@@ -112,7 +112,7 @@ class EmployeeApiTest extends TestCase
             'department_id' => $department->id,
             'job_title' => 'HR Manager',
             'hire_date' => '2026-01-01',
-            'employment_status' => 'active'
+            'employment_status' => 'active',
         ]);
 
         $response = $this->getJson('/api/employees');
@@ -130,7 +130,7 @@ class EmployeeApiTest extends TestCase
             'department_id' => $department->id,
             'job_title' => 'HR Manager',
             'hire_date' => '2026-01-01',
-            'employment_status' => 'active'
+            'employment_status' => 'active',
         ]);
 
         $response = $this->getJson("/api/employees/{$employee->id}");
@@ -148,7 +148,7 @@ class EmployeeApiTest extends TestCase
             'department_id' => $department->id,
             'job_title' => 'HR Manager',
             'hire_date' => '2026-01-01',
-            'employment_status' => 'active'
+            'employment_status' => 'active',
         ]);
 
         $response = $this->putJson("/api/employees/{$employee->id}", [
@@ -156,7 +156,7 @@ class EmployeeApiTest extends TestCase
             'department_id' => $department->id,
             'job_title' => 'HR Director',
             'hire_date' => '2026-01-01',
-            'employment_status' => 'active'
+            'employment_status' => 'active',
         ]);
 
         $response->assertStatus(200)
@@ -174,7 +174,7 @@ class EmployeeApiTest extends TestCase
             'department_id' => $department->id,
             'job_title' => 'HR Manager',
             'hire_date' => '2026-01-01',
-            'employment_status' => 'active'
+            'employment_status' => 'active',
         ]);
 
         $response = $this->deleteJson("/api/employees/{$employee->id}");

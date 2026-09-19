@@ -28,6 +28,7 @@ class ProjectApiTest extends TestCase
             'department_id' => $department->id,
             'job_title' => 'Project Manager',
             'hire_date' => '2026-01-01',
+            'employment_status' => 'active',
         ]);
     }
 
@@ -125,6 +126,7 @@ class ProjectApiTest extends TestCase
             'department_id' => $department->id,
             'job_title' => 'Dev',
             'hire_date' => '2026-01-01',
+            'employment_status' => 'active',
         ]);
 
         $response = $this->postJson("/api/projects/{$project->id}/members", [
