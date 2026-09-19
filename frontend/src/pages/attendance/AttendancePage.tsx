@@ -25,6 +25,8 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export const AttendancePage: React.FC = () => {
   const { user } = useAuth();
@@ -243,12 +245,62 @@ export const AttendancePage: React.FC = () => {
     }
   };
 
-  const handleExportCsv = async () => {
+  const handleExportPdf = () => {
     try {
-      await attendanceService.exportCsv();
-      setSuccessMessage('Attendance exported successfully.');
+      const doc = new jsPDF();
+      
+      doc.setFontSize(18);
+      doc.text('Attendance Report', 14, 22);
+      
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+
+      const tableData = records.map(rec => {
+        const empName = rec.employee?.user?.name || `Staff #${rec.employee_id}`;
+        
+        let dateStr = '—';
+        if (rec.date && typeof rec.date === 'string') {
+          dateStr = rec.date.substring(0, 10);
+        } else if (rec.created_at && typeof rec.created_at === 'string') {
+          dateStr = rec.created_at.substring(0, 10);
+        }
+        
+        const inTime = rec.check_in_time || rec.check_in || '—';
+        const outTime = rec.check_out_time || rec.check_out || '—';
+        
+        let hours = '—';
+        if (rec.check_in_time && rec.check_out_time) {
+          try {
+            const start = new Date(`2000-01-01T${rec.check_in_time}`);
+            const end = new Date(`2000-01-01T${rec.check_out_time}`);
+            const diffMs = end.getTime() - start.getTime();
+            if (!isNaN(diffMs) && diffMs >= 0) {
+              hours = `${Math.floor(diffMs / (1000 * 60 * 60))}h ${Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))}m`;
+            }
+          } catch {}
+        }
+        
+        const location = rec.is_remote ? 'Remote' : (rec.location || 'Office HQ');
+        const status = (rec.is_remote && rec.remote_status === 'pending') ? 'Pending HR' : (rec.status || 'present');
+
+        return [empName, dateStr, inTime, outTime, hours, location, status];
+      });
+
+      autoTable(doc, {
+        startY: 36,
+        head: [['Employee', 'Date', 'Clock In', 'Clock Out', 'Hours', 'Location', 'Status']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [5, 173, 152] },
+        styles: { fontSize: 9 },
+      });
+
+      doc.save(`attendance-report-${new Date().toISOString().split('T')[0]}.pdf`);
+      setSuccessMessage('Attendance exported as PDF successfully.');
     } catch (err) {
-      setError('Failed to export CSV.');
+      console.error(err);
+      setError('Failed to export PDF.');
     }
   };
 
@@ -512,10 +564,10 @@ export const AttendancePage: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleExportCsv}
+                  onClick={handleExportPdf}
                   leftIcon={<Download className="w-3 h-3" />}
                 >
-                  Export CSV
+                  Export PDF
                 </Button>
               </>
             )}
