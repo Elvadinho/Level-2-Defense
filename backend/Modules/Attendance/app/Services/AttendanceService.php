@@ -367,33 +367,23 @@ class AttendanceService
         ]);
     }
 
-    // ── Geolocation Verification ─────────────────────────────────────
-
     /**
-     * Verify that the given GPS coordinates are within the allowed
-     * radius of the office location.
+     * Calculate the distance from the configured office location.
      *
      * Uses the Haversine formula to calculate the distance
      * between two points on Earth.
      *
-     * @throws \RuntimeException if too far from office
+     * NOTE: This method no longer rejects check-ins based on distance.
+     * Distance is recorded for informational / demo purposes.
+     *
      * @return float The distance in meters
      */
     private function verifyLocation(float $latitude, float $longitude): float
     {
-        $officeLat = (float)env('OFFICE_LATITUDE');
-        $officeLng = (float)env('OFFICE_LONGITUDE');
-        $maxRadius = (float)env('OFFICE_RADIUS_METERS', 200);
+        $officeLat = (float)env('OFFICE_LATITUDE', 0);
+        $officeLng = (float)env('OFFICE_LONGITUDE', 0);
 
-        $distance = $this->haversineDistance($officeLat, $officeLng, $latitude, $longitude);
-
-        if ($distance > $maxRadius) {
-            throw new \RuntimeException(
-                "You are too far from the office. Distance: " . round($distance) . "m (max: {$maxRadius}m)."
-            );
-        }
-
-        return $distance;
+        return $this->haversineDistance($officeLat, $officeLng, $latitude, $longitude);
     }
 
 

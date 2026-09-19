@@ -23,6 +23,7 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronUp,
+  Trophy,
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import jsPDF from 'jspdf';
@@ -130,8 +131,8 @@ export const AttendancePage: React.FC = () => {
       }
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-        () => reject(new Error('Location permission is required to record attendance. Please allow location access and try again.')),
-        { timeout: 5000 }
+        (err) => reject(new Error(`Location permission is required to record attendance. Please allow location access and try again. (${err.message})`)),
+        { timeout: 15000, enableHighAccuracy: true, maximumAge: 30000 }
       );
     });
   };
@@ -284,16 +285,23 @@ export const AttendancePage: React.FC = () => {
         const location = rec.is_remote ? 'Remote' : (rec.location || 'Office HQ');
         const status = (rec.is_remote && rec.remote_status === 'pending') ? 'Pending HR' : (rec.status || 'present');
 
-        return [empName, dateStr, inTime, outTime, hours, location, status];
+        let distance = '—';
+        if (rec.check_in_distance != null) {
+          const distKm = rec.check_in_distance / 1000;
+          distance = distKm < 1 ? `${Math.round(rec.check_in_distance)}m` : `${distKm.toFixed(1)}km`;
+          if (distKm <= 10) distance += ' ✓ Winner';
+        }
+
+        return [empName, dateStr, inTime, outTime, hours, distance, location, status];
       });
 
       autoTable(doc, {
         startY: 36,
-        head: [['Employee', 'Date', 'Clock In', 'Clock Out', 'Hours', 'Location', 'Status']],
+        head: [['Employee', 'Date', 'Clock In', 'Clock Out', 'Hours', 'Distance', 'Location', 'Status']],
         body: tableData,
         theme: 'grid',
         headStyles: { fillColor: [5, 173, 152] },
-        styles: { fontSize: 9 },
+        styles: { fontSize: 8 },
       });
 
       doc.save(`attendance-report-${new Date().toISOString().split('T')[0]}.pdf`);
@@ -828,6 +836,7 @@ export const AttendancePage: React.FC = () => {
                     <th className="px-4 py-3">Clock In</th>
                     <th className="px-4 py-3">Clock Out</th>
                     <th className="px-4 py-3">Hours</th>
+                    <th className="px-4 py-3">Distance</th>
                     <th className="px-4 py-3">Location</th>
                     <th className="px-4 py-3">Status</th>
                   </tr>
@@ -862,6 +871,28 @@ export const AttendancePage: React.FC = () => {
                           </td>
                           <td className="px-4 py-3 font-mono text-slate-500 whitespace-nowrap">
                             {calculateDuration(rec.check_in_time, rec.check_out_time)}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {rec.check_in_distance != null ? (() => {
+                              const distKm = rec.check_in_distance / 1000;
+                              const isWinner = distKm <= 10;
+                              return (
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`font-mono text-xs font-semibold ${
+                                    isWinner ? 'text-emerald-600' : 'text-slate-500'
+                                  }`}>
+                                    {distKm < 1 ? `${Math.round(rec.check_in_distance)}m` : `${distKm.toFixed(1)}km`}
+                                  </span>
+                                  {isWinner && (
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">
+                                      <Trophy className="w-3 h-3" /> Winner
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })() : (
+                              <span className="text-slate-400">—</span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
                             {rec.is_remote ? (
@@ -903,7 +934,7 @@ export const AttendancePage: React.FC = () => {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-slate-500 text-xs">
+                      <td colSpan={8} className="px-4 py-8 text-center text-slate-500 text-xs">
                         No attendance records found.
                       </td>
                     </tr>
