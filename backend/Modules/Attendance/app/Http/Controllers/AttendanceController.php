@@ -15,17 +15,22 @@ class AttendanceController extends Controller
 
     /**
      * List all attendance records (HR / Admin).
+     * Supports optional ?employee_id= filter.
      */
     public function index(Request $request): JsonResponse
     {
         if ($request->user()->role->value !== 'admin' && $request->user()->role->value !== 'hr_manager') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-        return response()->json($this->attendanceService->getAll());
+
+        $employeeId = $request->query('employee_id') ? (int)$request->query('employee_id') : null;
+
+        return response()->json($this->attendanceService->getAll($employeeId));
     }
 
     /**
-     * Check in employee identified from auth token
+     * Check in employee identified from auth token.
+     * Passes the client IP to the service for fraud detection.
      */
     public function checkIn(AttendanceRequest $request): JsonResponse
     {
@@ -41,6 +46,7 @@ class AttendanceController extends Controller
                 $request->latitude,
                 $request->longitude,
                 $request->qr_code,
+                $request->ip(),
             );
 
             return response()->json([
@@ -52,6 +58,9 @@ class AttendanceController extends Controller
         }
     }
 
+    /**
+     * Check out employee identified from auth token.
+     */
     public function checkOut(AttendanceRequest $request): JsonResponse
     {
         $employee = $request->user()->employee;
@@ -64,6 +73,7 @@ class AttendanceController extends Controller
                 $request->latitude,
                 $request->longitude,
                 $request->qr_code,
+                $request->ip(),
             );
             return response()->json([
                 'message' => 'Checked out successfully.',
@@ -154,10 +164,35 @@ class AttendanceController extends Controller
         }
     }
 
+    // ── Remote Authorization Toggle ──────────────────────────────────
+
+    /**
+     * Toggle remote check-in authorization for an employee (HR/Admin only).
+     */
+    public function toggleRemoteAuthorization(Request $request, int $userId): JsonResponse
+    {
+        if ($request->user()->role->value !== 'admin' && $request->user()->role->value !== 'hr_manager') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        try {
+            $user = $this->attendanceService->toggleRemoteAuthorization($userId);
+            $status = $user->remote_checkin_authorized ? 'authorized' : 'revoked';
+            return response()->json([
+                'message' => "Remote check-in {$status} for {$user->name}.",
+                'user' => $user,
+                'remote_checkin_authorized' => $user->remote_checkin_authorized,
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 400);
+        }
+    }
+
     // ── Queries ───────────────────────────────────────────────────────
 
     /**
-     * Get attendance history for the authenticated employee
+     * Get attendance history for the authenticated employee.
+     * Returns only the current week's records.
      */
     public function myHistory(Request $request): JsonResponse
     {
@@ -167,7 +202,7 @@ class AttendanceController extends Controller
             return response()->json(['message' => 'No employee profile linked to this account.'], 403);
         }
 
-        return response()->json($this->attendanceService->getHistoryByEmployee($employee->id));
+        return response()->json($this->attendanceService->getMyWeekHistory($employee->id));
     }
 
     /**

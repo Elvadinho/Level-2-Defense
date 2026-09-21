@@ -27,6 +27,8 @@ class AttendanceService
         private readonly NotificationService $notificationService
     ) {}
 
+    // ── QR Token Management ──────────────────────────────────────────
+
     /**
      * Generate a new random office QR token valid for the given period
      * ('day', 'week', or 'month') and store it as the only currently
@@ -57,22 +59,27 @@ class AttendanceService
         }
     }
 
+    // ── Check-in / Check-out ─────────────────────────────────────────
+
     /**
      * Check in the authenticated employee.
      *
-     * @param Employee $employee The employee (derived from auth token)
-     * @param float $latitude GPS latitude from the phone
-     * @param float $longitude GPS longitude from the phone
-     * @param string $qrCode Token decoded from the office QR kiosk
+     * Flow:
+     * 1. Verify the QR token is valid.
+     * 2. Verify geolocation is within 200m (or configured radius).
+     *    - If too far → notify HR and throw.
+     * 3. Prevent double check-in.
+     * 4. Detect IP fraud (same IP used by another employee today).
+     * 5. Create the attendance record.
      */
-    public function checkIn(Employee $employee, float $latitude, float $longitude, string $qrCode): Attendance
+    public function checkIn(Employee $employee, float $latitude, float $longitude, string $qrCode, string $ip): Attendance
     {
         $this->verifyQrToken($qrCode);
 
-        //      verify geolocation and catch the distance
-        $distance = $this->verifyLocation($latitude, $longitude);
+        // Verify geolocation — throws if too far, notifies HR
+        $distance = $this->verifyLocation($employee, $latitude, $longitude);
 
-        //      Prevent double check
+        // Prevent double check-in
         $today = Carbon::today()->toDateString();
 
         $existing = Attendance::where('employee_id', $employee->id)
@@ -83,11 +90,11 @@ class AttendanceService
             throw new \RuntimeException('You have already checked in today.');
         }
 
-        //      Determine if late
+        // Determine if late
         $lateHour = (int)env('ATTENDANCE_LATE_HOUR', 8);
         $status = Carbon::now()->hour >= $lateHour ? AttendanceStatus::LATE : AttendanceStatus::PRESENT;
 
-        return Attendance::create([
+        $attendance = Attendance::create([
             'employee_id' => $employee->id,
             'date' => $today,
             'check_in_time' => Carbon::now()->toTimeString(),
@@ -95,15 +102,24 @@ class AttendanceService
             'check_in_distance' => $distance,
             'check_in_latitude' => $latitude,
             'check_in_longitude' => $longitude,
+            'check_in_ip' => $ip,
         ]);
+
+        // IP fraud detection — runs in background after record is created
+        $this->detectIpFraud($employee, $ip, $today);
+
+        return $attendance;
     }
 
-    public function checkOut(Employee $employee, float $latitude, float $longitude, string $qrCode): Attendance
+    /**
+     * Check out the authenticated employee.
+     */
+    public function checkOut(Employee $employee, float $latitude, float $longitude, string $qrCode, string $ip): Attendance
     {
         $this->verifyQrToken($qrCode);
 
-        //      Verify geolocation
-        $distance = $this->verifyLocation($latitude, $longitude);
+        // Verify geolocation
+        $distance = $this->verifyLocation($employee, $latitude, $longitude);
 
         $today = Carbon::today()->toDateString();
 
@@ -111,12 +127,12 @@ class AttendanceService
             ->whereDate('date', $today)
             ->first();
 
-        //      Must check in before checking out
+        // Must check in before checking out
         if (!$attendance) {
             throw new \RuntimeException('You have not checked in today.');
         }
 
-        //      Prevent double checkout
+        // Prevent double checkout
         if ($attendance->check_out_time) {
             throw new \RuntimeException('You have already checked out today.');
         }
@@ -126,6 +142,7 @@ class AttendanceService
             'check_out_distance' => $distance,
             'check_out_latitude' => $latitude,
             'check_out_longitude' => $longitude,
+            'check_out_ip' => $ip,
         ]);
 
         return $attendance;
@@ -138,6 +155,8 @@ class AttendanceService
      * remote_checkin_authorized flag set, the check-in is approved
      * immediately. Otherwise, a pending attendance record is created
      * and a fraud alert notification is sent to all HR managers.
+     *
+     * Remote check-ins bypass geolocation and IP fraud detection.
      */
     public function remoteCheckIn(Employee $employee, string $reason, ?float $latitude = null, ?float $longitude = null): Attendance
     {
@@ -288,10 +307,41 @@ class AttendanceService
         return $attendance->load(['employee.user', 'approver']);
     }
 
+    // ── Remote Authorization Toggle ──────────────────────────────────
+
+    /**
+     * Toggle the remote check-in authorization for a user (HR/Admin only).
+     */
+    public function toggleRemoteAuthorization(int $userId): User
+    {
+        $user = User::findOrFail($userId);
+        $user->update([
+            'remote_checkin_authorized' => !$user->remote_checkin_authorized,
+        ]);
+
+        return $user->fresh();
+    }
+
     // ── Queries ───────────────────────────────────────────────────────
 
     /**
-     * Get attendance history for a specific employee (with relationships).
+     * Get attendance records for a specific employee, scoped to the current week
+     * (Monday → Sunday). Used for the employee's own view.
+     */
+    public function getMyWeekHistory(int $employeeId): Collection
+    {
+        $weekStart = Carbon::now()->startOfWeek(Carbon::MONDAY)->toDateString();
+        $weekEnd = Carbon::now()->endOfWeek(Carbon::SUNDAY)->toDateString();
+
+        return Attendance::with('employee.user')
+            ->where('employee_id', $employeeId)
+            ->whereBetween('date', [$weekStart, $weekEnd])
+            ->orderBy('date', 'desc')
+            ->get();
+    }
+
+    /**
+     * Get attendance history for a specific employee — all records (HR/Admin use).
      */
     public function getHistoryByEmployee(int $employee): Collection
     {
@@ -303,12 +353,18 @@ class AttendanceService
 
     /**
      * Get all attendance records (HR / Admin).
+     * Optionally filter by a specific employee.
      */
-    public function getAll(): Collection
+    public function getAll(?int $employeeId = null): Collection
     {
-        return Attendance::with('employee.user')
-            ->orderBy('date', 'desc')
-            ->get();
+        $query = Attendance::with('employee.user')
+            ->orderBy('date', 'desc');
+
+        if ($employeeId) {
+            $query->where('employee_id', $employeeId);
+        }
+
+        return $query->get();
     }
 
     // ── CSV Export ────────────────────────────────────────────────────
@@ -336,6 +392,8 @@ class AttendanceService
                 'Remote',
                 'Remote Status',
                 'Distance (m)',
+                'IP Address',
+                'Fraud Flag',
             ]);
 
             foreach ($records as $record) {
@@ -358,6 +416,8 @@ class AttendanceService
                     $record->is_remote ? 'Yes' : 'No',
                     $record->remote_status ?? '',
                     $record->check_in_distance ?? '',
+                    $record->check_in_ip ?? '',
+                    $record->fraud_flag ? 'FLAGGED' : '',
                 ]);
             }
 
@@ -367,32 +427,167 @@ class AttendanceService
         ]);
     }
 
+    // ── Geolocation Verification ─────────────────────────────────────
+
     /**
-     * Calculate the distance from the configured office location.
+     * Verify that the given GPS coordinates are within the allowed
+     * radius of the office location.
      *
-     * Uses the Haversine formula to calculate the distance
-     * between two points on Earth.
+     * If too far, notifies HR/admin and throws a RuntimeException.
      *
-     * NOTE: This method no longer rejects check-ins based on distance.
-     * Distance is recorded for informational / demo purposes.
-     *
+     * @throws \RuntimeException if too far from office
      * @return float The distance in meters
      */
-    private function verifyLocation(float $latitude, float $longitude): float
+    private function verifyLocation(Employee $employee, float $latitude, float $longitude): float
     {
         $officeLat = (float)env('OFFICE_LATITUDE', 0);
         $officeLng = (float)env('OFFICE_LONGITUDE', 0);
+        $maxRadius = (float)env('OFFICE_RADIUS_METERS', 200);
 
-        return $this->haversineDistance($officeLat, $officeLng, $latitude, $longitude);
+        $distance = $this->haversineDistance($officeLat, $officeLng, $latitude, $longitude);
+
+        if ($distance > $maxRadius) {
+            // Notify HR / Admin about the distance violation
+            $this->notifyHrOfDistanceViolation($employee, $distance, $maxRadius);
+
+            throw new \RuntimeException(
+                "You are too far from the office. Distance: " . round($distance) . "m (max: {$maxRadius}m)."
+            );
+        }
+
+        return $distance;
     }
 
+    /**
+     * Send a notification to HR/Admin when an employee tries to check in
+     * from outside the allowed radius.
+     */
+    private function notifyHrOfDistanceViolation(Employee $employee, float $distance, float $maxRadius): void
+    {
+        $userName = $employee->user?->name ?? "Employee #{$employee->id}";
+
+        $hrUsers = User::where(function ($q) {
+            $q->where('role', 'hr_manager')
+              ->orWhere('role', 'admin');
+        })->pluck('id')->toArray();
+
+        if (empty($hrUsers)) {
+            return;
+        }
+
+        $distRounded = round($distance);
+
+        $this->notificationService->sendToUsers(
+            $hrUsers,
+            'attendance_distance_alert',
+            '📍 Suspicious Check-in Location',
+            "{$userName} tried to check in from {$distRounded}m away (max allowed: {$maxRadius}m). The check-in was blocked.",
+            [
+                'employee_id' => $employee->id,
+                'employee_name' => $userName,
+                'distance' => $distRounded,
+                'max_radius' => $maxRadius,
+                'date' => Carbon::today()->toDateString(),
+            ],
+            'in_app'
+        );
+    }
+
+    // ── IP Fraud Detection ───────────────────────────────────────────
+
+    /**
+     * Detect if the same IP address was used by a different employee today.
+     * If so, flag both attendance records and notify HR.
+     */
+    private function detectIpFraud(Employee $employee, string $ip, string $today): void
+    {
+        // Find any other employees who checked in from the same IP today
+        $duplicates = Attendance::where('check_in_ip', $ip)
+            ->whereDate('date', $today)
+            ->where('employee_id', '!=', $employee->id)
+            ->where('is_remote', false) // Don't flag remote check-ins
+            ->with('employee.user')
+            ->get();
+
+        if ($duplicates->isEmpty()) {
+            return;
+        }
+
+        $userName = $employee->user?->name ?? "Employee #{$employee->id}";
+
+        // Flag the current employee's record
+        Attendance::where('employee_id', $employee->id)
+            ->whereDate('date', $today)
+            ->update([
+                'fraud_flag' => true,
+                'fraud_reason' => "Same IP ({$ip}) used by: " . $duplicates->pluck('employee.user.name')->filter()->implode(', '),
+            ]);
+
+        // Flag all matching records from other employees
+        foreach ($duplicates as $dup) {
+            $otherName = $dup->employee?->user?->name ?? "Employee #{$dup->employee_id}";
+
+            $dup->update([
+                'fraud_flag' => true,
+                'fraud_reason' => "Same IP ({$ip}) used by: {$userName}",
+            ]);
+
+            // Notify the other employee
+            $otherUser = $dup->employee?->user;
+            if ($otherUser) {
+                $this->notificationService->send(
+                    $otherUser,
+                    'attendance_ip_fraud',
+                    '🚨 Attendance Flagged — Possible Credential Sharing',
+                    "Your attendance record was flagged because another employee ({$userName}) checked in from the same IP address ({$ip}). If this is a mistake, contact HR.",
+                    ['ip' => $ip, 'other_employee' => $userName],
+                    'in_app'
+                );
+            }
+        }
+
+        // Notify the current employee
+        $currentUser = $employee->user;
+        if ($currentUser) {
+            $otherNames = $duplicates->pluck('employee.user.name')->filter()->implode(', ');
+            $this->notificationService->send(
+                $currentUser,
+                'attendance_ip_fraud',
+                '🚨 Attendance Flagged — Possible Credential Sharing',
+                "Your attendance record was flagged because another employee ({$otherNames}) checked in from the same IP address ({$ip}). If this is a mistake, contact HR.",
+                ['ip' => $ip, 'other_employees' => $otherNames],
+                'in_app'
+            );
+        }
+
+        // Notify HR / Admins
+        $hrUsers = User::where(function ($q) {
+            $q->where('role', 'hr_manager')
+              ->orWhere('role', 'admin');
+        })->pluck('id')->toArray();
+
+        if (!empty($hrUsers)) {
+            $otherNames = $duplicates->pluck('employee.user.name')->filter()->implode(', ');
+            $this->notificationService->sendToUsers(
+                $hrUsers,
+                'attendance_ip_fraud_alert',
+                '🚨 Credential Sharing Detected',
+                "Possible credential sharing detected: {$userName} and {$otherNames} both checked in from the same IP address ({$ip}) on " . Carbon::today()->format('M d, Y') . ".",
+                [
+                    'ip' => $ip,
+                    'employees' => [$userName, $otherNames],
+                    'date' => Carbon::today()->toDateString(),
+                ],
+                'in_app'
+            );
+        }
+    }
+
+    // ── Haversine ────────────────────────────────────────────────────
 
     /**
      * Calculate the distance in meters between two GPS coordinates
      * using the Haversine formula.
-     *
-     * The Haversine formula determines the great-circle distance
-     * between two points on a sphere given their latitudes and longitudes.
      */
     private function haversineDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
     {

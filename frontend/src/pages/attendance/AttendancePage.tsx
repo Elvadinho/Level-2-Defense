@@ -19,11 +19,13 @@ import {
   AlertCircle,
   Download,
   Wifi,
+  WifiOff,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
   ChevronUp,
-  Trophy,
+  ShieldAlert,
+  Filter,
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import jsPDF from 'jspdf';
@@ -40,6 +42,7 @@ export const AttendancePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [employeeFilter, setEmployeeFilter] = useState<number | undefined>(undefined);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -101,7 +104,7 @@ export const AttendancePage: React.FC = () => {
     try {
       if (isAdminOrHR) {
         const [data, requestsData] = await Promise.all([
-          attendanceService.getAllAttendance(),
+          attendanceService.getAllAttendance(employeeFilter),
           attendanceService.getRemoteRequests()
         ]);
         setRecords(Array.isArray(data) ? data : []);
@@ -116,7 +119,18 @@ export const AttendancePage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAdminOrHR]);
+  }, [isAdminOrHR, employeeFilter]);
+
+  // Build unique employee list for the filter dropdown (admin only)
+  const uniqueEmployees = useMemo(() => {
+    const map = new Map<number, string>();
+    records.forEach(r => {
+      if (r.employee_id && r.employee?.user?.name) {
+        map.set(r.employee_id, r.employee.user.name);
+      }
+    });
+    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [records]);
 
   useEffect(() => {
     fetchAttendance();
@@ -246,6 +260,19 @@ export const AttendancePage: React.FC = () => {
     }
   };
 
+  const handleToggleRemoteAuth = async (userId: number) => {
+    setIsActionLoading(true);
+    try {
+      const res = await attendanceService.toggleRemoteAuth(userId);
+      setSuccessMessage(res.message);
+      await fetchAttendance();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to toggle remote authorization.');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   const handleExportPdf = () => {
     try {
       const doc = new jsPDF();
@@ -287,17 +314,17 @@ export const AttendancePage: React.FC = () => {
 
         let distance = '—';
         if (rec.check_in_distance != null) {
-          const distKm = rec.check_in_distance / 1000;
-          distance = distKm < 1 ? `${Math.round(rec.check_in_distance)}m` : `${distKm.toFixed(1)}km`;
-          if (distKm <= 10) distance += ' ✓ Winner';
+          distance = rec.check_in_distance < 1000 ? `${Math.round(rec.check_in_distance)}m` : `${(rec.check_in_distance / 1000).toFixed(1)}km`;
         }
 
-        return [empName, dateStr, inTime, outTime, hours, distance, location, status];
+        const fraud = rec.fraud_flag ? 'FLAGGED' : '';
+
+        return [empName, dateStr, inTime, outTime, hours, distance, location, status, fraud];
       });
 
       autoTable(doc, {
         startY: 36,
-        head: [['Employee', 'Date', 'Clock In', 'Clock Out', 'Hours', 'Distance', 'Location', 'Status']],
+        head: [['Employee', 'Date', 'Clock In', 'Clock Out', 'Hours', 'Distance', 'Location', 'Status', 'Security']],
         body: tableData,
         theme: 'grid',
         headStyles: { fillColor: [5, 173, 152] },
@@ -554,7 +581,7 @@ export const AttendancePage: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-slate-900 tracking-tight">Human Resources</span>
             <span className="text-slate-300">/</span>
-            <span className="text-xs font-semibold text-[#05AD98]">Attendance & Check-in</span>
+            <span className="text-xs font-semibold text-[#05AD98]">{isAdminOrHR ? 'Attendance & Check-in' : 'My Attendance This Week'}</span>
             <span className="text-xs text-slate-400 font-medium">({filteredRecords.length} records)</span>
           </div>
 
@@ -591,16 +618,36 @@ export const AttendancePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Search filter */}
-        <div className="relative flex-1 w-full pt-2 border-t border-slate-100">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none mt-1" />
-          <input
-            type="text"
-            placeholder="Search employee, location, or date..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#05AD98] focus:bg-white transition-colors"
-          />
+        {/* Search filter + Employee dropdown (Admin/HR only) */}
+        <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search employee, location, or date..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#05AD98] focus:bg-white transition-colors"
+            />
+          </div>
+          {isAdminOrHR && (
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={employeeFilter || ''}
+                onChange={(e) => {
+                  setEmployeeFilter(e.target.value ? Number(e.target.value) : undefined);
+                  setCurrentPage(1);
+                }}
+                className="text-xs border border-slate-200 rounded-lg py-1.5 px-2 bg-white focus:outline-none focus:border-[#05AD98] min-w-[140px]"
+              >
+                <option value="">All Employees</option>
+                {uniqueEmployees.map(([id, name]) => (
+                  <option key={id} value={id}>{name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
@@ -794,10 +841,10 @@ export const AttendancePage: React.FC = () => {
         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-2xs flex flex-col justify-between space-y-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Your History
+              {isAdminOrHR ? 'All Records' : 'This Week'}
             </p>
             <h3 className="text-2xl font-black text-slate-900 mt-1">
-              {records.length} <span className="text-xs font-normal text-slate-400">entries recorded</span>
+              {records.length} <span className="text-xs font-normal text-slate-400">{isAdminOrHR ? 'total entries' : 'this week'}</span>
             </h3>
           </div>
 
@@ -839,6 +886,7 @@ export const AttendancePage: React.FC = () => {
                     <th className="px-4 py-3">Distance</th>
                     <th className="px-4 py-3">Location</th>
                     <th className="px-4 py-3">Status</th>
+                    {isAdminOrHR && <th className="px-4 py-3">Security</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -846,11 +894,12 @@ export const AttendancePage: React.FC = () => {
                     paginatedRecords.map((rec) => {
                       const empName = rec.employee?.user?.name || `Staff #${rec.employee_id}`;
                       const isPending = rec.is_remote && rec.remote_status === 'pending';
+                      const isFraud = rec.fraud_flag;
                       
                       return (
-                        <tr key={rec.id} className={`hover:bg-slate-50/80 transition-colors ${isPending ? 'bg-amber-50/30' : ''}`}>
+                        <tr key={rec.id} className={`hover:bg-slate-50/80 transition-colors ${isPending ? 'bg-amber-50/30' : ''} ${isFraud ? 'bg-rose-50/40' : ''}`}>
                           <td className="px-4 py-3 font-semibold text-slate-900 flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-[#05AD98] shrink-0">
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${isFraud ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-[#05AD98]'}`}>
                               {empName.charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0">
@@ -873,24 +922,11 @@ export const AttendancePage: React.FC = () => {
                             {calculateDuration(rec.check_in_time, rec.check_out_time)}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
-                            {rec.check_in_distance != null ? (() => {
-                              const distKm = rec.check_in_distance / 1000;
-                              const isWinner = distKm <= 10;
-                              return (
-                                <div className="flex items-center gap-1.5">
-                                  <span className={`font-mono text-xs font-semibold ${
-                                    isWinner ? 'text-emerald-600' : 'text-slate-500'
-                                  }`}>
-                                    {distKm < 1 ? `${Math.round(rec.check_in_distance)}m` : `${distKm.toFixed(1)}km`}
-                                  </span>
-                                  {isWinner && (
-                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">
-                                      <Trophy className="w-3 h-3" /> Winner
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            })() : (
+                            {rec.check_in_distance != null ? (
+                              <span className="font-mono text-xs font-semibold text-slate-500">
+                                {rec.check_in_distance < 1000 ? `${Math.round(rec.check_in_distance)}m` : `${(rec.check_in_distance / 1000).toFixed(1)}km`}
+                              </span>
+                            ) : (
                               <span className="text-slate-400">—</span>
                             )}
                           </td>
@@ -929,12 +965,44 @@ export const AttendancePage: React.FC = () => {
                               </Badge>
                             )}
                           </td>
+                          {isAdminOrHR && (
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="flex flex-col gap-2">
+                                <div>
+                                  {isFraud ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold" title={rec.fraud_reason || 'Flagged for review'}>
+                                      <ShieldAlert className="w-3 h-3" /> FRAUD
+                                    </span>
+                                  ) : (
+                                    <span className="text-emerald-500 text-[10px] font-medium">✓ Clean</span>
+                                  )}
+                                </div>
+                                {rec.employee?.user && (
+                                  <button
+                                    onClick={() => handleToggleRemoteAuth(rec.employee!.user!.id)}
+                                    disabled={isActionLoading}
+                                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold border transition-colors ${
+                                      rec.employee.user.remote_checkin_authorized 
+                                        ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100' 
+                                        : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                                    }`}
+                                  >
+                                    {rec.employee.user.remote_checkin_authorized ? (
+                                      <><Wifi className="w-3 h-3" /> Remote Auth: ON</>
+                                    ) : (
+                                      <><WifiOff className="w-3 h-3" /> Remote Auth: OFF</>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-slate-500 text-xs">
+                      <td colSpan={isAdminOrHR ? 9 : 8} className="px-4 py-8 text-center text-slate-500 text-xs">
                         No attendance records found.
                       </td>
                     </tr>

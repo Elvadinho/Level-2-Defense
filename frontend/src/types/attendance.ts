@@ -10,7 +10,7 @@ export interface AttendanceRecord {
   check_out?: string | null;
   check_in_time?: string | null;
   check_out_time?: string | null;
-  work_hours?: string | null; // Added
+  work_hours?: string | null;
   location?: string;
   check_in_latitude?: number | null;
   check_in_longitude?: number | null;
@@ -18,6 +18,10 @@ export interface AttendanceRecord {
   check_out_longitude?: number | null;
   check_in_distance?: number | null;
   check_out_distance?: number | null;
+  check_in_ip?: string | null;
+  check_out_ip?: string | null;
+  fraud_flag?: boolean;
+  fraud_reason?: string | null;
   status: AttendanceStatus;
   notes?: string;
   

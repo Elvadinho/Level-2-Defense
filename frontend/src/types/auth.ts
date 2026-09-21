@@ -19,6 +19,7 @@ export interface User {
   email: string;
   role: UserRole;
   email_verified_at?: string | null;
+  remote_checkin_authorized?: boolean;
   created_at?: string;
   updated_at?: string;
   employee?: {

@@ -21,13 +21,16 @@ Route::middleware('auth:api')->prefix('attendance')->group(function () {
     // Admin / HR actions
     Route::get('/', [AttendanceController::class, 'index']);
     Route::get('/history/{employeeId}', [AttendanceController::class, 'history']);
-    Route::get('/qr-code', [AttendanceController::class, 'generateQrCode']);
-    
+    Route::get('/qr-code', [AttendanceController::class, 'generateQRCode']);
+
     // Admin / HR Remote Check-in Management
     Route::get('/remote-requests', [AttendanceController::class, 'pendingRemoteRequests']);
     Route::post('/remote-requests/{id}/approve', [AttendanceController::class, 'approveRemoteRequest']);
     Route::post('/remote-requests/{id}/reject', [AttendanceController::class, 'rejectRemoteRequest']);
-    
+
+    // Admin / HR Remote Authorization Toggle
+    Route::post('/toggle-remote-auth/{userId}', [AttendanceController::class, 'toggleRemoteAuthorization']);
+
     // Export
     Route::get('/export-csv', [AttendanceController::class, 'exportCsv']);
 });

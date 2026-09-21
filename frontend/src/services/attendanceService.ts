@@ -38,8 +38,12 @@ export const attendanceService = {
     return response.data;
   },
 
-  async getAllAttendance(): Promise<AttendanceRecord[]> {
-    const response = await api.get<AttendanceRecord[]>('/attendance');
+  async getAllAttendance(employeeId?: number): Promise<AttendanceRecord[]> {
+    const params: Record<string, string> = {};
+    if (employeeId) {
+      params.employee_id = String(employeeId);
+    }
+    const response = await api.get<AttendanceRecord[]>('/attendance', { params });
     return response.data;
   },
 
@@ -64,6 +68,13 @@ export const attendanceService = {
     const response = await api.post<{ message: string; attendance: AttendanceRecord }>(
       `/attendance/remote-requests/${id}/reject`,
       { reason }
+    );
+    return response.data;
+  },
+
+  async toggleRemoteAuth(userId: number): Promise<{ message: string; remote_checkin_authorized: boolean }> {
+    const response = await api.post<{ message: string; remote_checkin_authorized: boolean }>(
+      `/attendance/toggle-remote-auth/${userId}`
     );
     return response.data;
   },

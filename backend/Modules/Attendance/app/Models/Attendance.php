@@ -25,6 +25,10 @@ class Attendance extends Model
         'check_in_longitude',
         'check_out_latitude',
         'check_out_longitude',
+        'check_in_ip',
+        'check_out_ip',
+        'fraud_flag',
+        'fraud_reason',
         'is_remote',
         'remote_reason',
         'remote_status',
@@ -44,6 +48,7 @@ class Attendance extends Model
             'check_out_latitude' => 'decimal:7',
             'check_out_longitude' => 'decimal:7',
             'is_remote' => 'boolean',
+            'fraud_flag' => 'boolean',
         ];
     }
 
