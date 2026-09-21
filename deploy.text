@@ -1,0 +1,11 @@
+git add .
+git commit -m "style: Update app logo to use official site image"
+
+# Push to the main monorepo
+git push origin main
+
+# Push to the Backend Railway remote
+git subtree push --prefix backend module-backend main
+
+# Push to the Frontend Railway remote
+git subtree push --prefix frontend module-frontend main
