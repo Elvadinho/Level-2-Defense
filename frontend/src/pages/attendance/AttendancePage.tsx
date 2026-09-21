@@ -84,7 +84,9 @@ export const AttendancePage: React.FC = () => {
       // Safely check if r.date exists before calling startsWith
       const hasDateStr = r.date && typeof r.date === 'string' && r.date.startsWith(todayStr);
       const hasCreatedAtStr = r.created_at && typeof r.created_at === 'string' && r.created_at.startsWith(todayStr);
-      return hasDateStr || hasCreatedAtStr;
+      // Ensure the record belongs to the currently logged in user (or employee)
+      const isMyRecord = r.employee?.user?.id === user?.id || r.employee_id === user?.employee?.id;
+      return (hasDateStr || hasCreatedAtStr) && isMyRecord;
     }
   );
 
@@ -146,7 +148,7 @@ export const AttendancePage: React.FC = () => {
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
         (err) => reject(new Error(`Location permission is required to record attendance. Please allow location access and try again. (${err.message})`)),
-        { timeout: 15000, enableHighAccuracy: true, maximumAge: 30000 }
+        { timeout: 30000, enableHighAccuracy: false, maximumAge: 10000 }
       );
     });
   };
