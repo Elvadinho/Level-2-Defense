@@ -26,6 +26,7 @@ import {
   ChevronUp,
   ShieldAlert,
   Filter,
+  AlertTriangle,
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import jsPDF from 'jspdf';
@@ -1474,7 +1475,7 @@ export const AttendancePage: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
             <h3 className="text-lg font-bold text-slate-900 mb-2">Edit Attendance</h3>
             <p className="text-sm text-slate-500 mb-6">
-              Update attendance times for {editRecord.employee.user.first_name} {editRecord.employee.user.last_name}. Use HH:MM:SS format.
+              Update attendance times for {editRecord.employee?.user?.name || `Employee #${editRecord.employee_id}`}. Use HH:MM:SS format.
             </p>
 
             <div className="space-y-4">
