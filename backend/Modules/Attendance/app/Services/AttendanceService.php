@@ -325,6 +325,31 @@ class AttendanceService
     // ── Queries ───────────────────────────────────────────────────────
 
     /**
+     * Update an attendance record (Admin/HR).
+     */
+    public function updateAttendance(int $id, array $data): Attendance
+    {
+        $attendance = Attendance::findOrFail($id);
+        
+        // Ensure status string maps to the enum properly if provided
+        if (isset($data['status'])) {
+            $data['status'] = AttendanceStatus::from($data['status'])->value;
+        }
+
+        $attendance->update($data);
+        return $attendance->fresh(['employee.user']);
+    }
+
+    /**
+     * Delete an attendance record (Admin/HR).
+     */
+    public function deleteAttendance(int $id): void
+    {
+        $attendance = Attendance::findOrFail($id);
+        $attendance->delete();
+    }
+
+    /**
      * Get attendance records for a specific employee, scoped to the current week
      * (Monday → Sunday). Used for the employee's own view.
      */

@@ -77,15 +77,28 @@ export const AttendancePage: React.FC = () => {
   const [rejectId, setRejectId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState<string>('');
 
-  // Today's status determination
-  const todayStr = new Date().toISOString().split('T')[0];
+  // Edit Attendance Modal (Admin/HR)
+  const [showEditModal, setShowEditModal] = useState<boolean>(false);
+  const [editRecord, setEditRecord] = useState<AttendanceRecord | null>(null);
+
+  // Delete Attendance Modal (Admin/HR)
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  // Today's status determination (using local timezone to prevent UTC reset bugs)
+  const _today = new Date();
+  const todayStr = `${_today.getFullYear()}-${String(_today.getMonth() + 1).padStart(2, '0')}-${String(_today.getDate()).padStart(2, '0')}`;
+  
   const todayRecord = records.find(
     (r) => {
       // Safely check if r.date exists before calling startsWith
       const hasDateStr = r.date && typeof r.date === 'string' && r.date.startsWith(todayStr);
       const hasCreatedAtStr = r.created_at && typeof r.created_at === 'string' && r.created_at.startsWith(todayStr);
-      // Ensure the record belongs to the currently logged in user (or employee)
-      const isMyRecord = r.employee?.user?.id === user?.id || r.employee_id === user?.employee?.id;
+      // Ensure the record strictly belongs to the currently logged in user
+      const isMyRecord = Boolean(
+        (user?.employee?.id && r.employee_id === user.employee.id) || 
+        (!user?.employee?.id && user?.id && r.employee?.user?.id === user.id)
+      );
       return (hasDateStr || hasCreatedAtStr) && isMyRecord;
     }
   );
@@ -257,6 +270,42 @@ export const AttendancePage: React.FC = () => {
       await fetchAttendance();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Rejection failed.');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleUpdateAttendance = async () => {
+    if (!editRecord) return;
+    setIsActionLoading(true);
+    try {
+      await attendanceService.updateAttendance(editRecord.id, {
+        check_in_time: editRecord.check_in_time || null,
+        check_out_time: editRecord.check_out_time || null,
+        status: editRecord.status,
+      });
+      setSuccessMessage('Attendance updated successfully.');
+      setShowEditModal(false);
+      setEditRecord(null);
+      await fetchAttendance();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Update failed.');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleDeleteAttendance = async () => {
+    if (!deleteId) return;
+    setIsActionLoading(true);
+    try {
+      await attendanceService.deleteAttendance(deleteId);
+      setSuccessMessage('Attendance deleted successfully.');
+      setShowDeleteModal(false);
+      setDeleteId(null);
+      await fetchAttendance();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed.');
     } finally {
       setIsActionLoading(false);
     }
@@ -888,7 +937,12 @@ export const AttendancePage: React.FC = () => {
                     <th className="px-4 py-3">Distance</th>
                     <th className="px-4 py-3">Location</th>
                     <th className="px-4 py-3">Status</th>
-                    {isAdminOrHR && <th className="px-4 py-3">Security</th>}
+                    {isAdminOrHR && (
+                      <>
+                        <th className="px-4 py-3">Security</th>
+                        <th className="px-4 py-3 text-right">Actions</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -999,12 +1053,32 @@ export const AttendancePage: React.FC = () => {
                               </div>
                             </td>
                           )}
+                          {isAdminOrHR && (
+                            <td className="px-4 py-3 whitespace-nowrap text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => { setEditRecord(rec); setShowEditModal(true); }}
+                                  className="text-xs font-semibold px-2 py-1 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-200 rounded transition-colors"
+                                  title="Edit"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => { setDeleteId(rec.id); setShowDeleteModal(true); }}
+                                  className="text-xs font-semibold px-2 py-1 text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded transition-colors"
+                                  title="Delete"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan={isAdminOrHR ? 9 : 8} className="px-4 py-8 text-center text-slate-500 text-xs">
+                      <td colSpan={isAdminOrHR ? 10 : 8} className="px-4 py-8 text-center text-slate-500 text-xs">
                         No attendance records found.
                       </td>
                     </tr>
@@ -1393,6 +1467,111 @@ export const AttendancePage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Edit Attendance Modal */}
+      {showEditModal && editRecord && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Edit Attendance</h3>
+            <p className="text-sm text-slate-500 mb-6">
+              Update attendance times for {editRecord.employee.user.first_name} {editRecord.employee.user.last_name}. Use HH:MM:SS format.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Check-in Time</label>
+                <input
+                  type="text"
+                  value={editRecord.check_in_time || ''}
+                  onChange={(e) => setEditRecord({ ...editRecord, check_in_time: e.target.value })}
+                  placeholder="09:00:00"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Check-out Time</label>
+                <input
+                  type="text"
+                  value={editRecord.check_out_time || ''}
+                  onChange={(e) => setEditRecord({ ...editRecord, check_out_time: e.target.value })}
+                  placeholder="17:00:00"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                <select
+                  value={editRecord.status}
+                  onChange={(e) => setEditRecord({ ...editRecord, status: e.target.value as any })}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="present">Present</option>
+                  <option value="absent">Absent</option>
+                  <option value="late">Late</option>
+                  <option value="half_day">Half Day</option>
+                  <option value="remote">Remote</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                variant="primary"
+                onClick={handleUpdateAttendance}
+                isLoading={isActionLoading}
+                className="flex-1 justify-center"
+              >
+                Save Changes
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => { setShowEditModal(false); setEditRecord(null); }}
+                disabled={isActionLoading}
+                className="flex-1 justify-center"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Attendance Modal */}
+      {showDeleteModal && deleteId && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-6 h-6 text-rose-600" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Delete Attendance</h3>
+            <p className="text-sm text-slate-500 mb-6">
+              Are you sure you want to delete this attendance record? This action cannot be undone.
+            </p>
+
+            <div className="flex gap-3">
+              <Button
+                variant="danger"
+                onClick={handleDeleteAttendance}
+                isLoading={isActionLoading}
+                className="flex-1 justify-center"
+              >
+                Delete
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => { setShowDeleteModal(false); setDeleteId(null); }}
+                disabled={isActionLoading}
+                className="flex-1 justify-center"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

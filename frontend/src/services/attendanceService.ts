@@ -116,4 +116,14 @@ export const attendanceService = {
       expiresAt: response.headers['x-qr-expires-at'] ?? null,
     };
   },
+
+  async updateAttendance(id: number, data: Partial<AttendanceRecord>): Promise<{ message: string; attendance: AttendanceRecord }> {
+    const response = await api.put<{ message: string; attendance: AttendanceRecord }>(`/attendance/${id}`, data);
+    return response.data;
+  },
+
+  async deleteAttendance(id: number): Promise<{ message: string }> {
+    const response = await api.delete<{ message: string }>(`/attendance/${id}`);
+    return response.data;
+  },
 };

@@ -31,6 +31,10 @@ Route::middleware('auth:api')->prefix('attendance')->group(function () {
     // Admin / HR Remote Authorization Toggle
     Route::post('/toggle-remote-auth/{userId}', [AttendanceController::class, 'toggleRemoteAuthorization']);
 
+    // Admin / HR Attendance Management
+    Route::put('/{id}', [AttendanceController::class, 'update']);
+    Route::delete('/{id}', [AttendanceController::class, 'destroy']);
+
     // Export
     Route::get('/export-csv', [AttendanceController::class, 'exportCsv']);
 });

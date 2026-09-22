@@ -261,4 +261,50 @@ class AttendanceController extends Controller
 
         return $this->attendanceService->exportCsv();
     }
+
+    /**
+     * Update an attendance record (Admin/HR)
+     */
+    public function update(Request $request, int $id): JsonResponse
+    {
+        if ($request->user()->role->value !== 'admin' && $request->user()->role->value !== 'hr_manager') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'check_in_time' => 'nullable|date_format:H:i:s',
+            'check_out_time' => 'nullable|date_format:H:i:s',
+            'status' => 'nullable|string',
+        ]);
+
+        try {
+            $attendance = $this->attendanceService->updateAttendance($id, array_filter($validated, function($val) {
+                return $val !== null;
+            }));
+            
+            return response()->json([
+                'message' => 'Attendance updated successfully.',
+                'attendance' => $attendance,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to update attendance: ' . $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * Delete an attendance record (Admin/HR)
+     */
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        if ($request->user()->role->value !== 'admin' && $request->user()->role->value !== 'hr_manager') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        try {
+            $this->attendanceService->deleteAttendance($id);
+            return response()->json(['message' => 'Attendance deleted successfully.']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to delete attendance.'], 400);
+        }
+    }
 }
