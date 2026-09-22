@@ -936,7 +936,6 @@ export const AttendancePage: React.FC = () => {
                     <th className="px-4 py-3">Clock Out</th>
                     <th className="px-4 py-3">Hours</th>
                     <th className="px-4 py-3">Distance</th>
-                    <th className="px-4 py-3">Location</th>
                     <th className="px-4 py-3">Status</th>
                     {isAdminOrHR && (
                       <>
@@ -985,19 +984,6 @@ export const AttendancePage: React.FC = () => {
                               </span>
                             ) : (
                               <span className="text-slate-400">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
-                            {rec.is_remote ? (
-                              <span className="flex items-center gap-1 text-indigo-600 font-medium">
-                                <Wifi className="w-3 h-3" />
-                                Remote
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="w-3 h-3 text-slate-400" />
-                                {rec.location || 'Office HQ'}
-                              </span>
                             )}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
