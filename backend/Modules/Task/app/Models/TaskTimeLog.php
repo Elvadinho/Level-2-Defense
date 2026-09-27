@@ -6,35 +6,24 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-// use Modules\Task\Database\Factories\TaskCommentFactory;
 
-class TaskComment extends Model
+class TaskTimeLog extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     */
     protected $fillable = [
         'task_id',
         'user_id',
-        'body',
-        'is_edited',
-        'edited_at',
-        'reactions',
+        'hours',
+        'description',
+        'log_date',
     ];
-
-    // protected static function newFactory(): TaskCommentFactory
-    // {
-    //     // return TaskCommentFactory::new();
-    // }
 
     protected function casts(): array
     {
         return [
-            'is_edited' => 'boolean',
-            'edited_at' => 'datetime',
-            'reactions' => 'array',
+            'hours' => 'decimal:2',
+            'log_date' => 'date',
         ];
     }
 

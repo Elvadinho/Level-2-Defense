@@ -29,7 +29,9 @@ class Task extends Model
         'start_date',
         'due_date',
         'order',
-
+        'sprint',
+        'story_points',
+        'is_archived',
     ];
 
     // protected static function newFactory(): TaskFactory
@@ -44,6 +46,8 @@ class Task extends Model
             'priority' => TaskPriority::class,
             'start_date' => 'date',
             'due_date' => 'date',
+            'is_archived' => 'boolean',
+            'story_points' => 'integer',
         ];
     }
 
@@ -58,5 +62,40 @@ class Task extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(TaskComment::class);
+    }
+
+    public function subtasks(): HasMany
+    {
+        return $this->hasMany(Subtask::class);
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(TaskAttachment::class);
+    }
+
+    public function timeLogs(): HasMany
+    {
+        return $this->hasMany(TaskTimeLog::class);
+    }
+
+    public function watchers(): HasMany
+    {
+        return $this->hasMany(TaskWatcher::class);
+    }
+
+    public function dependencies(): HasMany
+    {
+        return $this->hasMany(TaskDependency::class, 'task_id');
+    }
+
+    public function dependentOn(): HasMany
+    {
+        return $this->hasMany(TaskDependency::class, 'depends_on_task_id');
+    }
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(TaskActivity::class);
     }
 }

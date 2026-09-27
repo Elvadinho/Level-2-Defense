@@ -4,10 +4,19 @@ namespace Modules\Task\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Modules\Project\Models\Project;
 use Modules\Task\Http\Requests\TaskRequest;
 use Modules\Task\Http\Requests\TaskCommentRequest;
+use Modules\Task\Http\Requests\SubtaskRequest;
+use Modules\Task\Http\Requests\TaskTimeLogRequest;
+use Modules\Task\Http\Requests\TaskDependencyRequest;
 use Modules\Task\Models\Task;
+use Modules\Task\Models\TaskComment;
+use Modules\Task\Models\Subtask;
+use Modules\Task\Models\TaskAttachment;
+use Modules\Task\Models\TaskTimeLog;
+use Modules\Task\Models\TaskDependency;
 use Modules\Task\Services\TaskService;
 
 class TaskController extends Controller
@@ -32,7 +41,16 @@ class TaskController extends Controller
 
     public function show(Task $task): JsonResponse
     {
-        return response()->json($task->load(['assignee.user', 'project', 'comments.user']));
+        return response()->json($task->load([
+            'assignee.user',
+            'project',
+            'comments.user',
+            'subtasks.assignee.user',
+            'attachments.uploader',
+            'timeLogs.user',
+            'watchers.user',
+            'dependencies.dependsOnTask',
+        ]));
     }
 
     public function update(TaskRequest $request, Task $task): JsonResponse
@@ -47,19 +65,4 @@ class TaskController extends Controller
         return response()->json(['message' => 'Task deleted successfully.']);
     }
 
-    public function addComment(TaskCommentRequest $request, Task $task): JsonResponse
-    {
-        $comment = $this->taskService->addComment(
-            $task,
-            $request->user()->id,
-            $request->validated()['body']
-        );
-
-        return response()->json($comment->load('user'), 201);
-    }
-
-    public function comments(Task $task): JsonResponse
-    {
-        return response()->json($this->taskService->getComments($task));
-    }
 }
