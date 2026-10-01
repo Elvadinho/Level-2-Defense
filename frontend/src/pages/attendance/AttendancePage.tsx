@@ -451,10 +451,20 @@ export const AttendancePage: React.FC = () => {
 
           (async () => {
             try {
+              // Extract token if the scanned text is a URL
+              let tokenToSubmit = decodedText;
+              try {
+                const url = new URL(decodedText);
+                const tokenParam = url.searchParams.get('token');
+                if (tokenParam) tokenToSubmit = tokenParam;
+              } catch {
+                // Not a valid URL, use raw text
+              }
+
               if (scannerAction === 'check-in') {
-                await executeCheckIn(decodedText);
+                await executeCheckIn(tokenToSubmit);
               } else {
-                await executeCheckOut(decodedText);
+                await executeCheckOut(tokenToSubmit);
               }
               
               // Keep the success state visible for a moment before closing
