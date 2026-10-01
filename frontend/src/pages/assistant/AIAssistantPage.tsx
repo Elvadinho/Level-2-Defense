@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../../context/AuthContext';
 import { assistantService } from '../../services/assistantService';
 import { ChatMessage, AgentRequest } from '../../types/assistant';
@@ -240,20 +241,15 @@ export const AIAssistantPage: React.FC = () => {
                           : 'bg-[#05AD98] text-white shadow-xs font-medium'
                       }`}
                     >
-                      <p className="whitespace-pre-wrap">{msg.text}</p>
-
-                      {msg.data !== undefined && msg.data !== null && (
-                        <details className="mt-2.5 group">
-                          <summary className="cursor-pointer text-[11px] font-semibold text-[#05AD98] select-none">
-                            View data
-                          </summary>
-                          <div className="mt-1.5 p-2 bg-slate-50 rounded border border-slate-200 text-[11px] font-mono overflow-x-auto text-slate-700 max-h-64 overflow-y-auto">
-                            <pre>{JSON.stringify(msg.data, null, 2)}</pre>
-                          </div>
-                        </details>
+                      {isAssistant ? (
+                        <div className="markdown-body space-y-2 [&>p]:mb-2 [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&>table]:w-full [&>table]:text-left [&>table]:border-collapse [&_th]:border-b [&_th]:pb-1 [&_td]:border-b [&_td]:border-slate-100 [&_td]:py-1">
+                          <ReactMarkdown>{msg.text}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="whitespace-pre-wrap">{msg.text}</p>
                       )}
 
-                      {isAssistant && msg.status === 'pending' && msg.agent_request_id && (
+                      {isAssistant && msg.status === 'pending_confirmation' && msg.agent_request_id && (
                         <div className="flex gap-2 mt-3 pt-3 border-t border-slate-200">
                           <Button size="sm" variant="primary" onClick={() => handleConfirmAction(msg.id, msg.agent_request_id!, true)}>
                             Approve
@@ -276,7 +272,7 @@ export const AIAssistantPage: React.FC = () => {
                           className={`font-semibold capitalize ${
                             msg.status === 'completed' || msg.status === 'done'
                               ? 'text-emerald-600'
-                              : msg.status === 'pending'
+                              : msg.status === 'pending_confirmation'
                               ? 'text-amber-600'
                               : 'text-rose-600'
                           }`}

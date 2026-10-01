@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Modules\Attendance\Enums\AttendanceStatus;
 use Modules\Attendance\Models\Attendance;
+use Modules\Attendance\Models\Office;
 use Modules\Employee\Models\Employee;
 use Modules\Notification\Services\NotificationService;
 use Illuminate\Database\Eloquent\Collection;
@@ -21,6 +22,8 @@ class AttendanceService
         'day' => 86400,
         'week' => 604800,
         'month' => 2592000,
+        'year' => 31536000,
+        'unlimited' => 3153600000, // 100 years
     ];
 
     public function __construct(
@@ -42,8 +45,13 @@ class AttendanceService
         $period = array_key_exists($period, self::PERIOD_SECONDS) ? $period : 'day';
 
         $token = Str::random(48);
-        $expiresAt = now()->addSeconds($ttlSeconds);
-        Cache::put(self::QR_CACHE_KEY, $token, $expiresAt);
+        $expiresAt = now('Africa/Douala')->addSeconds($ttlSeconds);
+
+        if ($period === 'unlimited') {
+            Cache::forever(self::QR_CACHE_KEY, $token);
+        } else {
+            Cache::put(self::QR_CACHE_KEY, $token, $expiresAt);
+        }
 
         return ['token' => $token, 'period' => $period, 'expires_at' => $expiresAt];
     }
@@ -77,10 +85,12 @@ class AttendanceService
         $this->verifyQrToken($qrCode);
 
         // Verify geolocation — throws if too far, notifies HR
-        $distance = $this->verifyLocation($employee, $latitude, $longitude);
+        $locationResult = $this->verifyLocation($employee, $latitude, $longitude);
+        $distance = $locationResult['distance'];
+        $officeId = $locationResult['office_id'];
 
         // Prevent double check-in
-        $today = Carbon::today()->toDateString();
+        $today = Carbon::today('Africa/Douala')->toDateString();
 
         $existing = Attendance::where('employee_id', $employee->id)
             ->whereDate('date', $today)
@@ -92,12 +102,13 @@ class AttendanceService
 
         // Determine if late
         $lateHour = (int)env('ATTENDANCE_LATE_HOUR', 8);
-        $status = Carbon::now()->hour >= $lateHour ? AttendanceStatus::LATE : AttendanceStatus::PRESENT;
+        $status = Carbon::now('Africa/Douala')->hour >= $lateHour ? AttendanceStatus::LATE : AttendanceStatus::PRESENT;
 
         $attendance = Attendance::create([
             'employee_id' => $employee->id,
+            'office_id' => $officeId,
             'date' => $today,
-            'check_in_time' => Carbon::now()->toTimeString(),
+            'check_in_time' => Carbon::now('Africa/Douala')->toTimeString(),
             'status' => $status->value,
             'check_in_distance' => $distance,
             'check_in_latitude' => $latitude,
@@ -119,9 +130,11 @@ class AttendanceService
         $this->verifyQrToken($qrCode);
 
         // Verify geolocation
-        $distance = $this->verifyLocation($employee, $latitude, $longitude);
+        $locationResult = $this->verifyLocation($employee, $latitude, $longitude);
+        $distance = $locationResult['distance'];
+        $officeId = $locationResult['office_id'];
 
-        $today = Carbon::today()->toDateString();
+        $today = Carbon::today('Africa/Douala')->toDateString();
 
         $attendance = Attendance::where('employee_id', $employee->id)
             ->whereDate('date', $today)
@@ -138,11 +151,12 @@ class AttendanceService
         }
 
         $attendance->update([
-            'check_out_time' => Carbon::now()->toTimeString(),
+            'check_out_time' => Carbon::now('Africa/Douala')->toTimeString(),
             'check_out_distance' => $distance,
             'check_out_latitude' => $latitude,
             'check_out_longitude' => $longitude,
             'check_out_ip' => $ip,
+            'office_id' => $attendance->office_id ?? $officeId, // Prefer the check-in office, but update if null
         ]);
 
         return $attendance;
@@ -160,7 +174,7 @@ class AttendanceService
      */
     public function remoteCheckIn(Employee $employee, string $reason, ?float $latitude = null, ?float $longitude = null): Attendance
     {
-        $today = Carbon::today()->toDateString();
+        $today = Carbon::today('Africa/Douala')->toDateString();
 
         // Prevent double check-in
         $existing = Attendance::where('employee_id', $employee->id)
@@ -175,12 +189,12 @@ class AttendanceService
         $isAuthorized = $user && $user->remote_checkin_authorized;
 
         $lateHour = (int)env('ATTENDANCE_LATE_HOUR', 8);
-        $status = Carbon::now()->hour >= $lateHour ? AttendanceStatus::LATE : AttendanceStatus::PRESENT;
+        $status = Carbon::now('Africa/Douala')->hour >= $lateHour ? AttendanceStatus::LATE : AttendanceStatus::PRESENT;
 
         $attendance = Attendance::create([
             'employee_id' => $employee->id,
             'date' => $today,
-            'check_in_time' => Carbon::now()->toTimeString(),
+            'check_in_time' => Carbon::now('Africa/Douala')->toTimeString(),
             'status' => $isAuthorized ? $status->value : 'present',
             'is_remote' => true,
             'remote_reason' => $reason,
@@ -222,7 +236,7 @@ class AttendanceService
                 'employee_id' => $employee->id,
                 'employee_name' => $userName,
                 'reason' => $reason,
-                'date' => Carbon::today()->toDateString(),
+                'date' => Carbon::today('Africa/Douala')->toDateString(),
             ],
             'in_app'
         );
@@ -355,8 +369,8 @@ class AttendanceService
      */
     public function getMyWeekHistory(int $employeeId): Collection
     {
-        $weekStart = Carbon::now()->startOfWeek(Carbon::MONDAY)->toDateString();
-        $weekEnd = Carbon::now()->endOfWeek(Carbon::SUNDAY)->toDateString();
+        $weekStart = Carbon::now('Africa/Douala')->startOfWeek(Carbon::MONDAY)->toDateString();
+        $weekEnd = Carbon::now('Africa/Douala')->endOfWeek(Carbon::SUNDAY)->toDateString();
 
         return Attendance::with('employee.user')
             ->where('employee_id', $employeeId)
@@ -447,7 +461,7 @@ class AttendanceService
             }
 
             fclose($handle);
-        }, 'attendance-export-' . now()->format('Y-m-d') . '.csv', [
+        }, 'attendance-export-' . now('Africa/Douala')->format('Y-m-d') . '.csv', [
             'Content-Type' => 'text/csv',
         ]);
     }
@@ -456,31 +470,50 @@ class AttendanceService
 
     /**
      * Verify that the given GPS coordinates are within the allowed
-     * radius of the office location.
+     * radius of the office location. Checks against all active offices.
      *
      * If too far, notifies HR/admin and throws a RuntimeException.
      *
      * @throws \RuntimeException if too far from office
-     * @return float The distance in meters
+     * @return array{distance: float, office_id: ?int}
      */
-    private function verifyLocation(Employee $employee, float $latitude, float $longitude): float
+    private function verifyLocation(Employee $employee, float $latitude, float $longitude): array
     {
-        $officeLat = (float)env('OFFICE_LATITUDE', 0);
-        $officeLng = (float)env('OFFICE_LONGITUDE', 0);
-        $maxRadius = (float)env('OFFICE_RADIUS_METERS', 200);
+        $offices = Office::where('is_active', true)->get();
 
-        $distance = $this->haversineDistance($officeLat, $officeLng, $latitude, $longitude);
+        $bestDistance = PHP_FLOAT_MAX;
+        $bestOfficeId = null;
+        $bestMaxRadius = 200;
 
-        if ($distance > $maxRadius) {
+        if ($offices->isEmpty()) {
+            // Fallback to .env settings if no offices are configured
+            $officeLat = (float)env('OFFICE_LATITUDE', 0);
+            $officeLng = (float)env('OFFICE_LONGITUDE', 0);
+            $maxRadius = (float)env('OFFICE_RADIUS_METERS', 200);
+
+            $bestDistance = $this->haversineDistance($officeLat, $officeLng, $latitude, $longitude);
+            $bestMaxRadius = $maxRadius;
+        } else {
+            foreach ($offices as $office) {
+                $distance = $this->haversineDistance((float)$office->latitude, (float)$office->longitude, $latitude, $longitude);
+                if ($distance < $bestDistance) {
+                    $bestDistance = $distance;
+                    $bestOfficeId = $office->id;
+                    $bestMaxRadius = (float)$office->radius_meters;
+                }
+            }
+        }
+
+        if ($bestDistance > $bestMaxRadius) {
             // Notify HR / Admin about the distance violation
-            $this->notifyHrOfDistanceViolation($employee, $distance, $maxRadius);
+            $this->notifyHrOfDistanceViolation($employee, $bestDistance, $bestMaxRadius);
 
             throw new \RuntimeException(
-                "You are too far from the office. Distance: " . round($distance) . "m (max: {$maxRadius}m)."
+                "You are too far from any office. Distance to nearest: " . round($bestDistance) . "m (max: {$bestMaxRadius}m)."
             );
         }
 
-        return $distance;
+        return ['distance' => $bestDistance, 'office_id' => $bestOfficeId];
     }
 
     /**
@@ -512,7 +545,7 @@ class AttendanceService
                 'employee_name' => $userName,
                 'distance' => $distRounded,
                 'max_radius' => $maxRadius,
-                'date' => Carbon::today()->toDateString(),
+                'date' => Carbon::today('Africa/Douala')->toDateString(),
             ],
             'in_app'
         );
@@ -597,11 +630,11 @@ class AttendanceService
                 $hrUsers,
                 'attendance_ip_fraud_alert',
                 '🚨 Credential Sharing Detected',
-                "Possible credential sharing detected: {$userName} and {$otherNames} both checked in from the same IP address ({$ip}) on " . Carbon::today()->format('M d, Y') . ".",
+                "Possible credential sharing detected: {$userName} and {$otherNames} both checked in from the same IP address ({$ip}) on " . Carbon::today('Africa/Douala')->format('M d, Y') . ".",
                 [
                     'ip' => $ip,
                     'employees' => [$userName, $otherNames],
-                    'date' => Carbon::today()->toDateString(),
+                    'date' => Carbon::today('Africa/Douala')->toDateString(),
                 ],
                 'in_app'
             );

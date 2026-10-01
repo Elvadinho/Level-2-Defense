@@ -115,19 +115,51 @@ class AIAssistantController extends Controller
         $parsed = $this->assistantService->parseResponse($llmResult['content']);
 
         if (!$parsed['success']) {
+            // Retry once on parse failure with a strict formatting hint
+            $messages[] = ['role' => 'assistant', 'content' => $llmResult['content']];
+            $messages[] = ['role' => 'user', 'content' => "Your previous response was not valid JSON. Please respond with ONLY a valid JSON object matching the requested schema, with no markdown fences or extra text."];
+            
+            $llmResult = $this->assistantService->callLLM($messages);
+            if ($llmResult['success']) {
+                $parsed = $this->assistantService->parseResponse($llmResult['content']);
+            }
+        }
+
+        if (!$parsed['success']) {
             // Store the failed request for debugging
             AgentRequest::create([
                 'user_id' => $user->id,
                 'user_input' => $userInput,
                 'prompt' => json_encode($messages),
-                'llm_response' => $llmResult['raw'],
+                'llm_response' => $llmResult['raw'] ?? null,
                 'status' => 'parse_error',
                 'error_log' => $parsed['error'],
             ]);
 
             return response()->json([
-                'error' => 'AI response could not be parsed',
-                'raw_response' => $llmResult['content'],
+                'error' => 'AI response could not be parsed as JSON after retry',
+                'raw_response' => $llmResult['content'] ?? null,
+            ], 422);
+        }
+
+        // Validate the parsed response against real database records
+        $parsed = $this->assistantService->validateResponse($parsed);
+
+        if (!$parsed['success']) {
+            AgentRequest::create([
+                'user_id' => $user->id,
+                'user_input' => $userInput,
+                'prompt' => json_encode($messages),
+                'llm_response' => $llmResult['raw'] ?? null,
+                'status' => 'validation_error',
+                'error_log' => $parsed['error'],
+            ]);
+
+            return response()->json([
+                'agent_request_id' => null,
+                'status' => 'failed',
+                'error' => $parsed['error'],
+                'explanation' => $parsed['error'],
             ], 422);
         }
 

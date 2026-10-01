@@ -558,6 +558,8 @@ export const AttendancePage: React.FC = () => {
     { value: 'day', label: '1 Day' },
     { value: 'week', label: '1 Week' },
     { value: 'month', label: '1 Month' },
+    { value: 'year', label: '1 Year' },
+    { value: 'unlimited', label: 'Unlimited' },
   ];
 
   // ── Data Processing & Pagination ──
@@ -1168,7 +1170,7 @@ export const AttendancePage: React.FC = () => {
             </div>
 
             <div className="p-2.5 rounded-lg bg-[#05AD98]/10 border border-[#05AD98]/20 text-xs text-[#037667] font-medium">
-              Valid for {qrPeriod === 'day' ? '1 day' : qrPeriod === 'week' ? '1 week' : '1 month'}
+              Valid for {qrPeriod === 'day' ? '1 day' : qrPeriod === 'week' ? '1 week' : qrPeriod === 'month' ? '1 month' : qrPeriod === 'year' ? '1 year' : 'unlimited time'}
               {qrExpiresAt && ` — expires ${new Date(qrExpiresAt).toLocaleString()}.`}
             </div>
 

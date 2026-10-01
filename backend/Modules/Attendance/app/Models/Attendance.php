@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Attendance\Enums\AttendanceStatus;
+use Modules\Attendance\Models\Office;
 use Modules\Employee\Models\Employee;
 
 class Attendance extends Model
@@ -15,6 +16,7 @@ class Attendance extends Model
 
     protected $fillable = [
         'employee_id',
+        'office_id',
         'date',
         'check_in_time',
         'check_out_time',
@@ -58,6 +60,14 @@ class Attendance extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    /**
+     * The office where this attendance was recorded.
+     */
+    public function office(): BelongsTo
+    {
+        return $this->belongsTo(Office::class);
     }
 
     /**

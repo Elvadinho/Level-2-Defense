@@ -49,9 +49,9 @@ class NvidiaNimAdapter implements AiProviderInterface
             $payload = [
                 'model' => $options['model'] ?? $this->model,
                 'messages' => $messages,
-                'temperature' => (float) ($options['temperature'] ?? $this->temperature),
-                'top_p' => 0.9,
-                'max_tokens' => $options['max_tokens'] ?? 2048,
+                'temperature' => (float) ($options['temperature'] ?? 0.05),
+                'top_p' => 0.7,
+                'max_tokens' => $options['max_tokens'] ?? 4096,
                 'stream' => false,
             ];
 

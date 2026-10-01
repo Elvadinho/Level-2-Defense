@@ -229,11 +229,18 @@ class AttendanceController extends Controller
         }
 
         $period = $request->query('period', 'day');
-        if (!in_array($period, ['day', 'week', 'month'], true)) {
+        if (!in_array($period, ['day', 'week', 'month', 'year', 'unlimited'], true)) {
             $period = 'day';
         }
 
         $qr = $this->attendanceService->generateQrToken($period);
+
+        // Suppress deprecation warnings from unmaintained simple-qrcode library on PHP 8.4+
+        $oldErrorLevel = error_reporting();
+        error_reporting($oldErrorLevel & ~E_DEPRECATED);
+
+        $frontendUrl = rtrim(env('APP_FRONTEND_URL', 'http://localhost:5173'), '/');
+        $scanUrl = "{$frontendUrl}/attendance/scan?token=" . urlencode($qr['token']);
 
         $qrCode = QrCode::format('svg')
             ->size(400)
@@ -242,7 +249,9 @@ class AttendanceController extends Controller
             ->eye('circle')      // Keeps the circular corner squares
             ->color(0, 102, 204) // Professional Blue
             ->backgroundColor(240, 255, 240) // Very light green background
-            ->generate($qr['token']);
+            ->generate($scanUrl);
+
+        error_reporting($oldErrorLevel);
 
         return response($qrCode, 200)
             ->header('Content-Type', 'image/svg+xml')

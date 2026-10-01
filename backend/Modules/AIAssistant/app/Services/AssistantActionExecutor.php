@@ -212,6 +212,25 @@ class AssistantActionExecutor
                     'check_out_time' => 'string: HH:MM:SS (optional)',
                 ],
             ],
+            'generate_task_templates' => [
+                'description' => 'Generate task templates for a project based on a description',
+                'sensitive' => false,
+                'allowed_roles' => [Role::ADMIN, Role::PROJECT_MANAGER, Role::EMPLOYEE],
+                'params' => [
+                    'project_id' => 'int (optional)',
+                    'project_description' => 'string (required)',
+                    'count' => 'int (optional)',
+                ],
+            ],
+            'bulk_create_tasks' => [
+                'description' => 'Create multiple tasks in a single operation',
+                'sensitive' => false,
+                'allowed_roles' => [Role::ADMIN, Role::PROJECT_MANAGER, Role::EMPLOYEE],
+                'params' => [
+                    'project_id' => 'int (required)',
+                    'tasks' => 'array of task objects (required)',
+                ],
+            ],
         ];
     }
 
@@ -351,6 +370,8 @@ class AssistantActionExecutor
                 'create_customer' => $this->handleCreateCustomer($params, $user),
                 'delete_customer' => $this->handleDeleteCustomer($params, $user),
                 'log_attendance' => $this->handleLogAttendance($params, $user),
+                'generate_task_templates' => $this->handleGenerateTaskTemplates($params, $user),
+                'bulk_create_tasks' => $this->handleBulkCreateTasks($params, $user),
                 default => [
                     'success' => false,
                     'action' => $actionName,
@@ -888,6 +909,67 @@ class AssistantActionExecutor
             'data' => [
                 'attendance' => $attendance,
             ],
+        ];
+    }
+
+    protected function handleGenerateTaskTemplates(array $params, User $user): array
+    {
+        // This action just returns the AI-generated templates back to the user
+        // The real action happens when they confirm via bulk_create_tasks
+        return [
+            'success' => true,
+            'action' => 'generate_task_templates',
+            'message' => "Task templates have been generated and are awaiting your review.",
+            'data' => [
+                'templates' => $params['templates'] ?? [],
+                'project_id' => $params['project_id'] ?? null,
+                'project_description' => $params['project_description'] ?? null,
+            ]
+        ];
+    }
+
+    protected function handleBulkCreateTasks(array $params, User $user): array
+    {
+        $projectId = $params['project_id'] ?? null;
+        if (!$projectId || !Project::where('id', $projectId)->exists()) {
+            return ['success' => false, 'error' => "Valid 'project_id' is required for bulk task creation."];
+        }
+
+        if (empty($params['tasks']) || !is_array($params['tasks'])) {
+            return ['success' => false, 'error' => "'tasks' array is required."];
+        }
+
+        $createdTasks = [];
+        
+        DB::transaction(function () use ($projectId, $params, &$createdTasks) {
+            foreach ($params['tasks'] as $taskDef) {
+                $statusVal = $taskDef['status'] ?? 'todo';
+                $statusEnum = TaskStatus::tryFrom($statusVal) ?? TaskStatus::TODO;
+
+                $priorityVal = $taskDef['priority'] ?? 'medium';
+                $priorityEnum = TaskPriority::tryFrom($priorityVal) ?? TaskPriority::MEDIUM;
+
+                $task = Task::create([
+                    'project_id' => $projectId,
+                    'title' => $taskDef['title'],
+                    'description' => $taskDef['description'] ?? null,
+                    'status' => $statusEnum,
+                    'priority' => $priorityEnum,
+                    'assigned_to' => $taskDef['assigned_to'] ?? null,
+                    'due_date' => $taskDef['due_date'] ?? null,
+                ]);
+                $createdTasks[] = $task;
+            }
+        });
+
+        return [
+            'success' => true,
+            'action' => 'bulk_create_tasks',
+            'message' => count($createdTasks) . " tasks were successfully created.",
+            'data' => [
+                'created_count' => count($createdTasks),
+                'tasks' => collect($createdTasks)->map(fn($t) => ['id' => $t->id, 'title' => $t->title])->toArray(),
+            ]
         ];
     }
 }

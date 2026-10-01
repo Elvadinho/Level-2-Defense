@@ -16,6 +16,7 @@ import { LandingPage } from './pages/LandingPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { EmployeesPage } from './pages/employees/EmployeesPage';
 import { AttendancePage } from './pages/attendance/AttendancePage';
+import { AttendanceScanPage } from './pages/attendance/AttendanceScanPage';
 import { ProjectsPage } from './pages/projects/ProjectsPage';
 import { TasksPage } from './pages/tasks/TasksPage';
 import { CustomersPage } from './pages/customers/CustomersPage';
@@ -71,6 +72,14 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={getRolesForModule('attendance')}>
                     <AttendancePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/attendance/scan"
+                element={
+                  <ProtectedRoute allowedRoles={getRolesForModule('attendance')}>
+                    <AttendanceScanPage />
                   </ProtectedRoute>
                 }
               />

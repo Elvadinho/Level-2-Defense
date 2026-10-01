@@ -56,7 +56,7 @@ export interface RemoteCheckInPayload {
   longitude?: number;
 }
 
-export type QrKioskPeriod = 'day' | 'week' | 'month';
+export type QrKioskPeriod = 'day' | 'week' | 'month' | 'year' | 'unlimited';
 
 export interface QrKioskCode {
   svg: string;
