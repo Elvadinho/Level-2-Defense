@@ -239,7 +239,7 @@ class AttendanceController extends Controller
         $oldErrorLevel = error_reporting();
         error_reporting($oldErrorLevel & ~E_DEPRECATED);
 
-        $frontendUrl = rtrim(env('APP_FRONTEND_URL', 'http://localhost:5173'), '/');
+        $frontendUrl = rtrim(config('app.frontend_url', 'http://localhost:5173'), '/');
         $scanUrl = "{$frontendUrl}/attendance/scan?token=" . urlencode($qr['token']);
 
         $qrCode = QrCode::format('svg')
